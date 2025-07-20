@@ -1,103 +1,269 @@
-import Image from "next/image";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import Link from "next/link"
+import { TrendingUp, BarChart3, Bell, Target, Zap, Shield } from "lucide-react"
 
 export default function Home() {
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+      {/* Navigation */}
+      <nav className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center space-x-2">
+              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                <TrendingUp className="w-5 h-5 text-white" />
+              </div>
+              <span className="text-xl font-bold text-gray-900">StockWatch</span>
+            </div>
+            <div className="flex items-center space-x-4">
+              <Link href="/dashboard">
+                <Button variant="outline">Dashboard</Button>
+              </Link>
+              <Link href="/dashboard">
+                <Button>Get Started</Button>
+              </Link>
+            </div>
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
+      </nav>
+
+      {/* Hero Section */}
+      <section className="pt-20 pb-16 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto text-center">
+          <div className="mb-8">
+            <Badge variant="secondary" className="mb-4">
+              🚀 Professional Stock Tracking Platform
+            </Badge>
+            <h1 className="text-4xl sm:text-6xl font-bold text-gray-900 mb-6">
+              Master Your
+              <span className="text-blue-600"> Portfolio</span>
+            </h1>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-8">
+              Advanced stock tracking with real-time pricing, valuation metrics, and market alerts. 
+              Make informed investment decisions with our comprehensive dashboard.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link href="/dashboard">
+                <Button size="lg" className="w-full sm:w-auto">
+                  <TrendingUp className="w-5 h-5 mr-2" />
+                  Launch Dashboard
+                </Button>
+              </Link>
+              <Button variant="outline" size="lg" className="w-full sm:w-auto">
+                <BarChart3 className="w-5 h-5 mr-2" />
+                View Demo
+              </Button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-white">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">
+              Powerful Features for Smart Investing
+            </h2>
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+              Everything you need to track, analyze, and optimize your investment portfolio
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {/* Pricing & Valuation */}
+            <Card className="border-l-4 border-l-yellow-500 hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
+                    <Target className="w-5 h-5 text-yellow-600" />
+                  </div>
+                  <CardTitle className="text-lg">Pricing & Valuation</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600 mb-4">
+                  Comprehensive pricing analysis with intrinsic value calculations, 
+                  target prices, and upside potential metrics.
+                </p>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span>Intrinsic Value</span>
+                    <Badge variant="secondary">✓</Badge>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Target Prices</span>
+                    <Badge variant="secondary">✓</Badge>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Upside Analysis</span>
+                    <Badge variant="secondary">✓</Badge>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Stock Universe */}
+            <Card className="border-l-4 border-l-green-500 hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                    <BarChart3 className="w-5 h-5 text-green-600" />
+                  </div>
+                  <CardTitle className="text-lg">Stock Universe</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600 mb-4">
+                  Research tracking with P/E ratios, 52-week ranges, and advanced 
+                  screening criteria for optimal stock selection.
+                </p>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span>P/E Analysis</span>
+                    <Badge variant="secondary">✓</Badge>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>52-Week Ranges</span>
+                    <Badge variant="secondary">✓</Badge>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Research Tracking</span>
+                    <Badge variant="secondary">✓</Badge>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Research & Analysis */}
+            <Card className="border-l-4 border-l-orange-500 hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                    <Bell className="w-5 h-5 text-orange-600" />
+                  </div>
+                  <CardTitle className="text-lg">Research & Analysis</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600 mb-4">
+                  Comprehensive research tracking with ratings, intrinsic values, 
+                  growth metrics, and dividend analysis for informed decisions.
+                </p>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span>Research Ratings</span>
+                    <Badge variant="secondary">✓</Badge>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Intrinsic Values</span>
+                    <Badge variant="secondary">✓</Badge>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Growth Metrics</span>
+                    <Badge variant="secondary">✓</Badge>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* Stats Section */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gray-50">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+            <div>
+              <div className="text-3xl font-bold text-blue-600 mb-2">21+</div>
+              <div className="text-gray-600">Stocks Tracked</div>
+            </div>
+            <div>
+              <div className="text-3xl font-bold text-green-600 mb-2">Real-time</div>
+              <div className="text-gray-600">Market Data</div>
+            </div>
+            <div>
+              <div className="text-3xl font-bold text-orange-600 mb-2">Instant</div>
+              <div className="text-gray-600">Alerts & Notifications</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-blue-600">
+        <div className="max-w-4xl mx-auto text-center">
+          <h2 className="text-3xl font-bold text-white mb-4">
+            Ready to Transform Your Investing?
+          </h2>
+          <p className="text-xl text-blue-100 mb-8">
+            Join thousands of investors who trust StockWatch for their portfolio management
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link href="/dashboard">
+              <Button size="lg" variant="secondary" className="w-full sm:w-auto">
+                <Zap className="w-5 h-5 mr-2" />
+                Start Tracking Now
+              </Button>
+            </Link>
+            <Button size="lg" variant="outline" className="w-full sm:w-auto border-white text-white hover:bg-white hover:text-blue-600">
+              <Shield className="w-5 h-5 mr-2" />
+              Learn More
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="bg-gray-900 text-white py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+            <div>
+              <div className="flex items-center space-x-2 mb-4">
+                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                  <TrendingUp className="w-5 h-5 text-white" />
+                </div>
+                <span className="text-xl font-bold">StockWatch</span>
+              </div>
+              <p className="text-gray-400">
+                Professional stock tracking and portfolio management platform.
+              </p>
+            </div>
+            <div>
+              <h3 className="font-semibold mb-4">Features</h3>
+              <ul className="space-y-2 text-gray-400">
+                <li>Pricing & Valuation</li>
+                <li>Stock Universe</li>
+                <li>Market Alerts</li>
+                <li>Portfolio Tracking</li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="font-semibold mb-4">Company</h3>
+              <ul className="space-y-2 text-gray-400">
+                <li>About Us</li>
+                <li>Contact</li>
+                <li>Privacy Policy</li>
+                <li>Terms of Service</li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="font-semibold mb-4">Support</h3>
+              <ul className="space-y-2 text-gray-400">
+                <li>Help Center</li>
+                <li>Documentation</li>
+                <li>API Reference</li>
+                <li>Status</li>
+              </ul>
+            </div>
+          </div>
+          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
+            <p>&copy; 2024 StockWatch. All rights reserved.</p>
+          </div>
+        </div>
       </footer>
     </div>
-  );
+  )
 }
