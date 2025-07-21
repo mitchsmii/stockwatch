@@ -303,7 +303,7 @@ export default function Dashboard() {
                         className={`flex items-center justify-center gap-1 hover:text-blue-600 ${sortColumn === "intValue" ? "text-blue-600 font-semibold" : ""}`}
                         onClick={() => handleSort("intValue")}
                       >
-                            Int Value
+                            Intrinsic Value
                         {sortColumn === "intValue" && (
                           <span className="text-blue-600">{sortDirection === "asc" ? "↑" : "↓"}</span>
                         )}
@@ -314,7 +314,7 @@ export default function Dashboard() {
                         className={`flex items-center justify-center gap-1 hover:text-blue-600 ${sortColumn === "plusMinus" ? "text-blue-600 font-semibold" : ""}`}
                         onClick={() => handleSort("plusMinus")}
                       >
-                        +/-
+                        +/- %
                         {sortColumn === "plusMinus" && (
                           <span className="text-blue-600">{sortDirection === "asc" ? "↑" : "↓"}</span>
                         )}
@@ -325,23 +325,13 @@ export default function Dashboard() {
                         className={`flex items-center justify-center gap-1 hover:text-blue-600 ${sortColumn === "tenYearRet" ? "text-blue-600 font-semibold" : ""}`}
                         onClick={() => handleSort("tenYearRet")}
                       >
-                            10Y Ret %
+                            10Y Est. Ret %
                         {sortColumn === "tenYearRet" && (
                           <span className="text-blue-600">{sortDirection === "asc" ? "↑" : "↓"}</span>
                         )}
                           </button>
                     </TableHead>
-                    <TableHead className="text-center w-12">
-                      <button 
-                        className={`flex items-center justify-center gap-1 hover:text-blue-600 ${sortColumn === "vsMkt" ? "text-blue-600 font-semibold" : ""}`}
-                        onClick={() => handleSort("vsMkt")}
-                      >
-                            vs Mkt
-                        {sortColumn === "vsMkt" && (
-                          <span className="text-blue-600">{sortDirection === "asc" ? "↑" : "↓"}</span>
-                        )}
-                          </button>
-                    </TableHead>
+
                     <TableHead className="text-center w-16">
                       <button 
                         className={`flex items-center justify-center gap-1 hover:text-blue-600 ${sortColumn === "buyPrice" ? "text-blue-600 font-semibold" : ""}`}
@@ -358,7 +348,7 @@ export default function Dashboard() {
                         className={`flex items-center justify-center gap-1 hover:text-blue-600 ${sortColumn === "percentPlusMinus" ? "text-blue-600 font-semibold" : ""}`}
                         onClick={() => handleSort("percentPlusMinus")}
                       >
-                        % +/-
+                        +/- %
                         {sortColumn === "percentPlusMinus" && (
                           <span className="text-blue-600">{sortDirection === "asc" ? "↑" : "↓"}</span>
                         )}
@@ -438,15 +428,7 @@ export default function Dashboard() {
                       >
                         {(stock.tenYearRet * 100).toFixed(2)}%
                       </TableCell>
-                      <TableCell 
-                        className="text-center font-medium py-1"
-                        style={{
-                          backgroundColor: getColorForCustomRange(stock.vsMkt, -0.05, 0, 0.05),
-                          color: '#111',
-                        }}
-                      >
-                        {(stock.vsMkt * 100).toFixed(2)}%
-                      </TableCell>
+
                       <TableCell className="text-center py-1">${stock.buyPrice.toFixed(2)}</TableCell>
                       <TableCell 
                         className="text-center font-medium py-1"
@@ -585,7 +567,7 @@ export default function Dashboard() {
                         className={`flex items-center justify-center gap-1 hover:text-blue-600 ${sortColumn === "daysOff52w" ? "text-blue-600 font-semibold" : ""}`}
                         onClick={() => handleSort("daysOff52w")}
                       >
-                            Days Off
+                            Days Off 52Wk High
                         {sortColumn === "daysOff52w" && (
                           <span className="text-blue-600">{sortDirection === "asc" ? "↑" : "↓"}</span>
                         )}
@@ -596,7 +578,7 @@ export default function Dashboard() {
                         className={`flex items-center justify-center gap-1 hover:text-blue-600 ${sortColumn === "over10Under6" ? "text-blue-600 font-semibold" : ""}`}
                         onClick={() => handleSort("over10Under6")}
                       >
-                            {'>'}10/{'<'}6
+                            {'(10%)+'} 60d
                         {sortColumn === "over10Under6" && (
                           <span className="text-blue-600">{sortDirection === "asc" ? "↑" : "↓"}</span>
                         )}
@@ -746,7 +728,7 @@ export default function Dashboard() {
                         className={`flex items-center justify-center gap-1 hover:text-blue-600 ${sortColumn === "type" ? "text-blue-600 font-semibold" : ""}`}
                         onClick={() => handleSort("type")}
                       >
-                        Type
+                        Company Type
                         {sortColumn === "type" && (
                           <span className="text-blue-600">{sortDirection === "asc" ? "↑" : "↓"}</span>
                         )}
@@ -757,7 +739,7 @@ export default function Dashboard() {
                         className={`flex items-center justify-center gap-1 hover:text-blue-600 ${sortColumn === "level" ? "text-blue-600 font-semibold" : ""}`}
                         onClick={() => handleSort("level")}
                       >
-                        Level
+                        Research Level
                         {sortColumn === "level" && (
                           <span className="text-blue-600">{sortDirection === "asc" ? "↑" : "↓"}</span>
                         )}
@@ -768,7 +750,7 @@ export default function Dashboard() {
                         className={`flex items-center justify-center gap-1 hover:text-blue-600 ${sortColumn === "lastAnnUp" ? "text-blue-600 font-semibold" : ""}`}
                         onClick={() => handleSort("lastAnnUp")}
                       >
-                        Last Ann Up
+                        Last Ann Update
                         {sortColumn === "lastAnnUp" && (
                           <span className="text-blue-600">{sortDirection === "asc" ? "↑" : "↓"}</span>
                         )}
@@ -779,7 +761,7 @@ export default function Dashboard() {
                         className={`flex items-center justify-center gap-1 hover:text-blue-600 ${sortColumn === "lastUpdate" ? "text-blue-600 font-semibold" : ""}`}
                         onClick={() => handleSort("lastUpdate")}
                       >
-                        Last Update
+                        Last Int Update
                         {sortColumn === "lastUpdate" && (
                           <span className="text-blue-600">{sortDirection === "asc" ? "↑" : "↓"}</span>
                         )}
@@ -790,29 +772,19 @@ export default function Dashboard() {
                         className={`flex items-center justify-center gap-1 hover:text-blue-600 ${sortColumn === "nextRept" ? "text-blue-600 font-semibold" : ""}`}
                         onClick={() => handleSort("nextRept")}
                       >
-                        Next Rept
+                        Next Earnings Date
                         {sortColumn === "nextRept" && (
                           <span className="text-blue-600">{sortDirection === "asc" ? "↑" : "↓"}</span>
                         )}
                       </button>
                     </TableHead>
-                    <TableHead className="text-center w-10">
-                      <button 
-                        className={`flex items-center justify-center gap-1 hover:text-blue-600 ${sortColumn === "update" ? "text-blue-600 font-semibold" : ""}`}
-                        onClick={() => handleSort("update")}
-                      >
-                        Update
-                        {sortColumn === "update" && (
-                          <span className="text-blue-600">{sortDirection === "asc" ? "↑" : "↓"}</span>
-                        )}
-                      </button>
-                    </TableHead>
+
                     <TableHead className="text-center w-10">
                       <button 
                         className={`flex items-center justify-center gap-1 hover:text-blue-600 ${sortColumn === "recommend" ? "text-blue-600 font-semibold" : ""}`}
                         onClick={() => handleSort("recommend")}
                       >
-                        Recommend
+                        Recommendation
                         {sortColumn === "recommend" && (
                           <span className="text-blue-600">{sortDirection === "asc" ? "↑" : "↓"}</span>
                         )}
@@ -823,7 +795,7 @@ export default function Dashboard() {
                         className={`flex items-center justify-center gap-1 hover:text-blue-600 ${sortColumn === "rating" ? "text-blue-600 font-semibold" : ""}`}
                         onClick={() => handleSort("rating")}
                       >
-                        Rating
+                        Overall Rating
                         {sortColumn === "rating" && (
                           <span className="text-blue-600">{sortDirection === "asc" ? "↑" : "↓"}</span>
                         )}
@@ -834,7 +806,7 @@ export default function Dashboard() {
                         className={`flex items-center justify-center gap-1 hover:text-blue-600 ${sortColumn === "rating2" ? "text-blue-600 font-semibold" : ""}`}
                         onClick={() => handleSort("rating2")}
                       >
-                        Rating 2
+                        Quality Rating
                         {sortColumn === "rating2" && (
                           <span className="text-blue-600">{sortDirection === "asc" ? "↑" : "↓"}</span>
                         )}
@@ -856,7 +828,7 @@ export default function Dashboard() {
                         className={`flex items-center justify-center gap-1 hover:text-blue-600 ${sortColumn === "upDn" ? "text-blue-600 font-semibold" : ""}`}
                         onClick={() => handleSort("upDn")}
                       >
-                        Up/Dn
+                        Intrinsic Value Up/Dn %
                         {sortColumn === "upDn" && (
                           <span className="text-blue-600">{sortDirection === "asc" ? "↑" : "↓"}</span>
                         )}
@@ -867,7 +839,7 @@ export default function Dashboard() {
                         className={`flex items-center justify-center gap-1 hover:text-blue-600 ${sortColumn === "sameSh" ? "text-blue-600 font-semibold" : ""}`}
                         onClick={() => handleSort("sameSh")}
                       >
-                        Same Sh
+                        10Y Price Same Shares
                         {sortColumn === "sameSh" && (
                           <span className="text-blue-600">{sortDirection === "asc" ? "↑" : "↓"}</span>
                         )}
@@ -878,7 +850,7 @@ export default function Dashboard() {
                         className={`flex items-center justify-center gap-1 hover:text-blue-600 ${sortColumn === "cagr" ? "text-blue-600 font-semibold" : ""}`}
                         onClick={() => handleSort("cagr")}
                       >
-                        CAGR
+                        OE/Shr 10Y CAGR
                         {sortColumn === "cagr" && (
                           <span className="text-blue-600">{sortDirection === "asc" ? "↑" : "↓"}</span>
                         )}
@@ -889,7 +861,7 @@ export default function Dashboard() {
                         className={`flex items-center justify-center gap-1 hover:text-blue-600 ${sortColumn === "dividendY" ? "text-blue-600 font-semibold" : ""}`}
                         onClick={() => handleSort("dividendY")}
                       >
-                        Dividend Y
+                        Dividend Yield
                         {sortColumn === "dividendY" && (
                           <span className="text-blue-600">{sortDirection === "asc" ? "↑" : "↓"}</span>
                         )}
@@ -900,7 +872,7 @@ export default function Dashboard() {
                         className={`flex items-center justify-center gap-1 hover:text-blue-600 ${sortColumn === "cagi" ? "text-blue-600 font-semibold" : ""}`}
                         onClick={() => handleSort("cagi")}
                       >
-                        CAGI
+                        Total 10Y CAGR
                         {sortColumn === "cagi" && (
                           <span className="text-blue-600">{sortDirection === "asc" ? "↑" : "↓"}</span>
                         )}
@@ -911,7 +883,7 @@ export default function Dashboard() {
                         className={`flex items-center justify-center gap-1 hover:text-blue-600 ${sortColumn === "yield" ? "text-blue-600 font-semibold" : ""}`}
                         onClick={() => handleSort("yield")}
                       >
-                        Yield
+                        Curr OE FCF Yield
                         {sortColumn === "yield" && (
                           <span className="text-blue-600">{sortDirection === "asc" ? "↑" : "↓"}</span>
                         )}
@@ -922,7 +894,7 @@ export default function Dashboard() {
                         className={`flex items-center justify-center gap-1 hover:text-blue-600 ${sortColumn === "busModel" ? "text-blue-600 font-semibold" : ""}`}
                         onClick={() => handleSort("busModel")}
                       >
-                        Bus Mod
+                        Business Model
                         {sortColumn === "busModel" && (
                           <span className="text-blue-600">{sortDirection === "asc" ? "↑" : "↓"}</span>
                         )}
@@ -944,7 +916,7 @@ export default function Dashboard() {
                         className={`flex items-center justify-center gap-1 hover:text-blue-600 ${sortColumn === "balSheet" ? "text-blue-600 font-semibold" : ""}`}
                         onClick={() => handleSort("balSheet")}
                       >
-                        Bal Sh
+                        Balance Sheet
                         {sortColumn === "balSheet" && (
                           <span className="text-blue-600">{sortDirection === "asc" ? "↑" : "↓"}</span>
                         )}
@@ -988,7 +960,7 @@ export default function Dashboard() {
                         className={`flex items-center justify-center gap-1 hover:text-blue-600 ${sortColumn === "histReturn" ? "text-blue-600 font-semibold" : ""}`}
                         onClick={() => handleSort("histReturn")}
                       >
-                        Hist Retu
+                        Hist Return
                         {sortColumn === "histReturn" && (
                           <span className="text-blue-600">{sortDirection === "asc" ? "↑" : "↓"}</span>
                         )}
@@ -1013,16 +985,7 @@ export default function Dashboard() {
                       <TableCell className="text-center py-1">{stock.lastAnnUp}</TableCell>
                       <TableCell className="text-center py-1">{stock.lastUpdate}</TableCell>
                       <TableCell className="text-center py-1">{stock.nextRept}</TableCell>
-                      <TableCell className="text-center py-1">
-                        <Badge 
-                          variant="secondary" 
-                          className={`${
-                            stock.update === "✓" ? "bg-green-200 text-green-800" : "bg-gray-200 text-gray-800"
-                          }`}
-                        >
-                          {stock.update}
-                        </Badge>
-                      </TableCell>
+
                       <TableCell className="text-center py-1">
                         <Badge 
                           variant="secondary" 
@@ -1033,9 +996,24 @@ export default function Dashboard() {
                           {stock.recommend}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-center py-1">{stock.rating.toFixed(1)}</TableCell>
-                      <TableCell className="text-center py-1">{stock.rating2.toFixed(1)}</TableCell>
-                      <TableCell className="text-center py-1">{stock.valueRating.toFixed(1)}</TableCell>
+                      <TableCell 
+                        className="text-center py-1"
+                        style={{ backgroundColor: getColorForCustomRange(stock.rating, 7, 8.5, 10), color: '#111' }}
+                      >
+                        {stock.rating.toFixed(1)}
+                      </TableCell>
+                      <TableCell 
+                        className="text-center py-1"
+                        style={{ backgroundColor: getColorForCustomRange(stock.rating2, 7, 8.5, 10), color: '#111' }}
+                      >
+                        {stock.rating2.toFixed(1)}
+                      </TableCell>
+                      <TableCell 
+                        className="text-center py-1"
+                        style={{ backgroundColor: getColorForCustomRange(stock.valueRating, 7, 8.5, 10), color: '#111' }}
+                      >
+                        {stock.valueRating.toFixed(1)}
+                      </TableCell>
                       <TableCell 
                         className="text-center font-medium py-1"
                         style={{
@@ -1047,6 +1025,7 @@ export default function Dashboard() {
                       </TableCell>
                       <TableCell 
                         className="text-center py-1"
+                        style={{ backgroundColor: getColorForCustomRange(stock.sameSh, 100, 500, 1000), color: '#111' }}
                       >
                         {stock.sameSh.toFixed(1)}
                       </TableCell>
