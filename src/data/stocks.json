@@ -43,7 +43,14 @@
     "cagr": 0.185,
     "dividendY": 0.5,
     "cagi": 0.152,
-    "yield": 0.028
+    "yield": 0.028,
+    "busModel": 8.5,
+    "profit": 10.0,
+    "balSheet": 10.0,
+    "moat": 9.5,
+    "growth": 9.2,
+    "management": 9.6,
+    "histReturn": 9.0
   },
   {
     "ticker": "MSFT",
@@ -89,7 +96,14 @@
     "cagr": 0.221,
     "dividendY": 0.8,
     "cagi": 0.187,
-    "yield": 0.032
+    "yield": 0.032,
+    "busModel": 9.0,
+    "profit": 9.7,
+    "balSheet": 10.0,
+    "moat": 8.0,
+    "growth": 8.4,
+    "management": 9.2,
+    "histReturn": 9.0
   },
   {
     "ticker": "GOOGL",
@@ -135,7 +149,14 @@
     "cagr": 0.163,
     "dividendY": 0.0,
     "cagi": 0.145,
-    "yield": 0.015
+    "yield": 0.015,
+    "busModel": 8.0,
+    "profit": 8.1,
+    "balSheet": 9.0,
+    "moat": 8.8,
+    "growth": 9.0,
+    "management": 7.3,
+    "histReturn": 10.0
   },
   {
     "ticker": "AMZN",
@@ -181,7 +202,14 @@
     "cagr": 0.198,
     "dividendY": 0.0,
     "cagi": 0.172,
-    "yield": 0.021
+    "yield": 0.021,
+    "busModel": 8.0,
+    "profit": 9.1,
+    "balSheet": 9.8,
+    "moat": 9.8,
+    "growth": 8.6,
+    "management": 9.0,
+    "histReturn": 10.0
   },
   {
     "ticker": "NVDA",
@@ -227,7 +255,14 @@
     "cagr": 0.287,
     "dividendY": 0.1,
     "cagi": 0.253,
-    "yield": 0.038
+    "yield": 0.038,
+    "busModel": 7.5,
+    "profit": 8.8,
+    "balSheet": 9.2,
+    "moat": 8.5,
+    "growth": 8.9,
+    "management": 8.7,
+    "histReturn": 9.3
   },
   {
     "ticker": "TSLA",
@@ -273,7 +308,14 @@
     "cagr": 0.125,
     "dividendY": 0.0,
     "cagi": 0.108,
-    "yield": 0.012
+    "yield": 0.012,
+    "busModel": 8.2,
+    "profit": 7.9,
+    "balSheet": 8.8,
+    "moat": 9.1,
+    "growth": 7.8,
+    "management": 8.5,
+    "histReturn": 8.9
   },
   {
     "ticker": "META",
@@ -319,7 +361,14 @@
     "cagr": 0.189,
     "dividendY": 0.0,
     "cagi": 0.165,
-    "yield": 0.025
+    "yield": 0.025,
+    "busModel": 9.2,
+    "profit": 9.5,
+    "balSheet": 9.8,
+    "moat": 9.7,
+    "growth": 9.3,
+    "management": 9.4,
+    "histReturn": 9.6
   },
   {
     "ticker": "BRK.B",
@@ -365,7 +414,14 @@
     "cagr": 0.143,
     "dividendY": 0.0,
     "cagi": 0.128,
-    "yield": 0.018
+    "yield": 0.018,
+    "busModel": 6.2,
+    "profit": 5.8,
+    "balSheet": 6.5,
+    "moat": 5.9,
+    "growth": 6.1,
+    "management": 5.5,
+    "histReturn": 6.7
   },
   {
     "ticker": "UNH",
@@ -411,7 +467,14 @@
     "cagr": 0.112,
     "dividendY": 1.4,
     "cagi": 0.098,
-    "yield": 0.042
+    "yield": 0.042,
+    "busModel": 5.1,
+    "profit": 6.3,
+    "balSheet": 5.7,
+    "moat": 6.0,
+    "growth": 5.5,
+    "management": 6.2,
+    "histReturn": 5.9
   },
   {
     "ticker": "JNJ",
@@ -457,7 +520,14 @@
     "cagr": 0.089,
     "dividendY": 2.8,
     "cagi": 0.075,
-    "yield": 0.051
+    "yield": 0.051,
+    "busModel": 5.9,
+    "profit": 6.7,
+    "balSheet": 5.2,
+    "moat": 6.4,
+    "growth": 5.8,
+    "management": 6.1,
+    "histReturn": 5.3
   },
   {
     "ticker": "JPM",
@@ -503,7 +573,14 @@
     "cagr": 0.123,
     "dividendY": 2.5,
     "cagi": 0.109,
-    "yield": 0.048
+    "yield": 0.048,
+    "busModel": 6.5,
+    "profit": 5.5,
+    "balSheet": 6.8,
+    "moat": 5.6,
+    "growth": 6.3,
+    "management": 5.7,
+    "histReturn": 6.0
   },
   {
     "ticker": "V",
@@ -549,7 +626,14 @@
     "cagr": 0.105,
     "dividendY": 0.8,
     "cagi": 0.092,
-    "yield": 0.032
+    "yield": 0.032,
+    "busModel": 5.4,
+    "profit": 6.2,
+    "balSheet": 5.6,
+    "moat": 6.1,
+    "growth": 5.3,
+    "management": 6.5,
+    "histReturn": 5.8
   },
   {
     "ticker": "PG",
@@ -595,7 +679,14 @@
     "cagr": 0.078,
     "dividendY": 2.3,
     "cagi": 0.065,
-    "yield": 0.049
+    "yield": 0.049,
+    "busModel": 2.2,
+    "profit": 3.1,
+    "balSheet": 1.8,
+    "moat": 2.5,
+    "growth": 3.7,
+    "management": 2.9,
+    "histReturn": 1.5
   },
   {
     "ticker": "HD",
@@ -641,7 +732,14 @@
     "cagr": 0.142,
     "dividendY": 2.1,
     "cagi": 0.128,
-    "yield": 0.039
+    "yield": 0.039,
+    "busModel": 3.4,
+    "profit": 2.7,
+    "balSheet": 1.9,
+    "moat": 3.2,
+    "growth": 2.5,
+    "management": 1.8,
+    "histReturn": 3.1
   },
   {
     "ticker": "MA",
@@ -687,7 +785,14 @@
     "cagr": 0.137,
     "dividendY": 0.6,
     "cagi": 0.123,
-    "yield": 0.028
+    "yield": 0.028,
+    "busModel": 1.7,
+    "profit": 2.3,
+    "balSheet": 3.5,
+    "moat": 1.9,
+    "growth": 2.8,
+    "management": 3.2,
+    "histReturn": 1.6
   },
   {
     "ticker": "BAC",
@@ -733,7 +838,14 @@
     "cagr": 0.083,
     "dividendY": 2.8,
     "cagi": 0.071,
-    "yield": 0.052
+    "yield": 0.052,
+    "busModel": 3.2,
+    "profit": 1.9,
+    "balSheet": 2.8,
+    "moat": 3.6,
+    "growth": 1.5,
+    "management": 2.1,
+    "histReturn": 3.3
   },
   {
     "ticker": "ADEYEY",
@@ -779,7 +891,14 @@
     "cagr": 0.185,
     "dividendY": 0.5,
     "cagi": 0.152,
-    "yield": 0.028
+    "yield": 0.028,
+    "busModel": 2.5,
+    "profit": 1.2,
+    "balSheet": 3.1,
+    "moat": 2.8,
+    "growth": 1.9,
+    "management": 3.4,
+    "histReturn": 2.7
   },
   {
     "ticker": "LULU",

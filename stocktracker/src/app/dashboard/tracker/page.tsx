@@ -396,7 +396,7 @@ export default function TrackerPage() {
                 <TableHead className="text-center">Range</TableHead>
                 <TableHead className="text-center">52-Wk Hi Date</TableHead>
                 <TableHead className="text-center">Days Off 52w</TableHead>
-                <TableHead className="text-center">>10%, <6i</TableHead>
+                <TableHead className="text-center">>10%, <60d</TableHead>
                 <TableHead className="text-center">% off 52-Wk Lo</TableHead>
                 <TableHead className="text-center">% off 52-Wk Hi</TableHead>
               </TableRow>
@@ -478,7 +478,7 @@ export default function TrackerPage() {
 
         <Card className="border-l-4 border-l-green-500">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm text-green-800">>10%, <6i Stocks</CardTitle>
+            <CardTitle className="text-sm text-green-800">>10%, <60d Stocks</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">

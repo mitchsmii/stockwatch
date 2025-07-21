@@ -8,10 +8,10 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import Link from "next/link"
 import { Plus, X, Search, Check } from "lucide-react"
 import { getColorForCustomRange } from "@/utils/getColorForChange"
 import stocksData from "@/data/stocks.json"
+import { StockDetailDrawer } from "@/components/ui/stock-detail-drawer"
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState("pricing")
@@ -19,6 +19,8 @@ export default function Dashboard() {
   const [showAddForm, setShowAddForm] = useState(false)
   const [sortColumn, setSortColumn] = useState("")
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc")
+  const [selectedStock, setSelectedStock] = useState<any>(null)
+  const [drawerOpen, setDrawerOpen] = useState(false)
 
   // Use imported stock data
   const [stocks, setStocks] = useState(stocksData)
@@ -69,7 +71,14 @@ export default function Dashboard() {
         "cagr": Math.random() * 20 + 10,
         "dividendY": Math.random() > 0.7 ? Math.random() * 2 : 0.0,
         "cagi": Math.random() * 20 + 10,
-        "yield": Math.random() * 5
+        "yield": Math.random() * 5,
+        "busModel": Math.random() * 10,
+        "profit": Math.random() * 10,
+        "balSheet": Math.random() * 10,
+        "moat": Math.random() * 10,
+        "growth": Math.random() * 10,
+        "management": Math.random() * 10,
+        "histReturn": Math.random() * 10
       }
       setStocks([...stocks, newStock])
       setNewTicker("")
@@ -123,6 +132,11 @@ export default function Dashboard() {
 
   return (
     <div className="w-full p-6 space-y-6 max-w-none">
+      <StockDetailDrawer 
+        stock={selectedStock} 
+        open={drawerOpen}
+        onOpenChange={setDrawerOpen}
+      />
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Stock Dashboard</h1>
@@ -358,103 +372,105 @@ export default function Dashboard() {
                     <TableRow 
                       key={stock.ticker}
                       className="cursor-pointer hover:bg-gray-50 transition-colors border-b border-gray-100"
+                      onClick={() => {
+                        setSelectedStock(stock)
+                        setDrawerOpen(true)
+                      }}
                     >
-                      <Link href={`/dashboard/tracker/${stock.ticker.toLowerCase()}`} className="contents">
-                        <TableCell className="font-medium py-3 sticky left-0 bg-white z-10">{stock.ticker}</TableCell>
-                        <TableCell className="text-center py-1">
-                          {stock.held ? <Check className="w-4 h-4 text-green-600 mx-auto" /> : ""}
-                        </TableCell>
-                        <TableCell className="text-center py-1">${(stock.mktCap / 1000).toFixed(1)}B</TableCell>
-                        <TableCell className="text-center py-1">${stock.price.toFixed(2)}</TableCell>
-                        <TableCell 
-                          className="text-center font-medium py-1"
-                          style={{
-                            backgroundColor: getColorForCustomRange(stock.oneDay, -0.02, 0, 0.02),
-                            color: '#111',
+                      <TableCell className="font-medium py-3 sticky left-0 bg-white z-10">{stock.ticker}</TableCell>
+                      <TableCell className="text-center py-1">
+                        {stock.held ? <Check className="w-4 h-4 text-green-600 mx-auto" /> : ""}
+                      </TableCell>
+                      <TableCell className="text-center py-1">${(stock.mktCap / 1000).toFixed(1)}B</TableCell>
+                      <TableCell className="text-center py-1">${stock.price.toFixed(2)}</TableCell>
+                      <TableCell 
+                        className="text-center font-medium py-1"
+                        style={{
+                          backgroundColor: getColorForCustomRange(stock.oneDay, -0.02, 0, 0.02),
+                          color: '#111',
+                        }}
+                      >
+                        {(stock.oneDay * 100) >= 0 ? `+${(stock.oneDay * 100).toFixed(2)}%` : `(${Math.abs(stock.oneDay * 100).toFixed(2)}%)`}
+                      </TableCell>
+                      <TableCell 
+                        className="text-center font-medium py-1"
+                        style={{
+                          backgroundColor: getColorForCustomRange(stock.oneWeek, -0.05, 0, 0.05),
+                          color: '#111',
+                        }}
+                      >
+                        {(stock.oneWeek * 100) >= 0 ? `+${(stock.oneWeek * 100).toFixed(2)}%` : `(${Math.abs(stock.oneWeek * 100).toFixed(2)}%)`}
+                      </TableCell>
+                      <TableCell 
+                        className="text-center font-medium py-1"
+                        style={{
+                          backgroundColor: getColorForCustomRange(stock.oneMonth, -0.05, 0, 0.05),
+                          color: '#111',
+                        }}
+                      >
+                        {(stock.oneMonth * 100) >= 0 ? `+${(stock.oneMonth * 100).toFixed(2)}%` : `(${Math.abs(stock.oneMonth * 100).toFixed(2)}%)`}
+                      </TableCell>
+                      <TableCell 
+                        className="text-center font-medium py-1"
+                        style={{
+                          backgroundColor: getColorForCustomRange(stock.oneYear, -0.15, 0, 0.15),
+                          color: '#111',
+                        }}
+                      >
+                        {(stock.oneYear * 100) >= 0 ? `+${(stock.oneYear * 100).toFixed(2)}%` : `(${Math.abs(stock.oneYear * 100).toFixed(2)}%)`}
+                      </TableCell>
+                      <TableCell className="text-center py-1">${stock.intValue.toFixed(2)}</TableCell>
+                      <TableCell 
+                        className="text-center font-medium py-1"
+                        style={{
+                          backgroundColor: getColorForCustomRange(stock.plusMinus, -0.1, -0.05, 0.15),
+                          color: '#111',
+                        }}
+                      >
+                        {(stock.plusMinus * 100) >= 0 ? "+" : ""}{(stock.plusMinus * 100).toFixed(2)}%
+                      </TableCell>
+                      <TableCell 
+                        className="text-center font-medium py-1"
+                        style={{
+                          backgroundColor: getColorForCustomRange(stock.tenYearRet, 0.05, 0.125, 0.2),
+                          color: '#111',
+                        }}
+                      >
+                        {(stock.tenYearRet * 100).toFixed(2)}%
+                      </TableCell>
+                      <TableCell 
+                        className="text-center font-medium py-1"
+                        style={{
+                          backgroundColor: getColorForCustomRange(stock.vsMkt, -0.05, 0, 0.05),
+                          color: '#111',
+                        }}
+                      >
+                        {(stock.vsMkt * 100).toFixed(2)}%
+                      </TableCell>
+                      <TableCell className="text-center py-1">${stock.buyPrice.toFixed(2)}</TableCell>
+                      <TableCell 
+                        className="text-center font-medium py-1"
+                        style={{
+                          backgroundColor: getColorForCustomRange(stock.percentPlusMinus, -0.1, -0.05, 0.15),
+                          color: '#111',
+                        }}
+                      >
+                        {(stock.percentPlusMinus * 100) >= 0 ? "+" : ""}{(stock.percentPlusMinus * 100).toFixed(2)}%
+                      </TableCell>
+                      <TableCell className="text-center py-1">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            removeStock(stock.ticker)
                           }}
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50 h-6 px-2"
                         >
-                          {(stock.oneDay * 100) >= 0 ? `+${(stock.oneDay * 100).toFixed(2)}%` : `(${Math.abs(stock.oneDay * 100).toFixed(2)}%)`}
-                        </TableCell>
-                        <TableCell 
-                          className="text-center font-medium py-1"
-                          style={{
-                            backgroundColor: getColorForCustomRange(stock.oneWeek, -0.05, 0, 0.05),
-                            color: '#111',
-                          }}
-                        >
-                          {(stock.oneWeek * 100) >= 0 ? `+${(stock.oneWeek * 100).toFixed(2)}%` : `(${Math.abs(stock.oneWeek * 100).toFixed(2)}%)`}
-                        </TableCell>
-                        <TableCell 
-                          className="text-center font-medium py-1"
-                          style={{
-                            backgroundColor: getColorForCustomRange(stock.oneMonth, -0.05, 0, 0.05),
-                            color: '#111',
-                          }}
-                        >
-                          {(stock.oneMonth * 100) >= 0 ? `+${(stock.oneMonth * 100).toFixed(2)}%` : `(${Math.abs(stock.oneMonth * 100).toFixed(2)}%)`}
-                        </TableCell>
-                        <TableCell 
-                          className="text-center font-medium py-1"
-                          style={{
-                            backgroundColor: getColorForCustomRange(stock.oneYear, -0.15, 0, 0.15),
-                            color: '#111',
-                          }}
-                        >
-                          {(stock.oneYear * 100) >= 0 ? `+${(stock.oneYear * 100).toFixed(2)}%` : `(${Math.abs(stock.oneYear * 100).toFixed(2)}%)`}
-                        </TableCell>
-                        <TableCell className="text-center py-1">${stock.intValue.toFixed(2)}</TableCell>
-                        <TableCell 
-                          className="text-center font-medium py-1"
-                          style={{
-                            backgroundColor: getColorForCustomRange(stock.plusMinus, -0.1, -0.05, 0.15),
-                            color: '#111',
-                          }}
-                        >
-                          {(stock.plusMinus * 100) >= 0 ? "+" : ""}{(stock.plusMinus * 100).toFixed(2)}%
-                        </TableCell>
-                        <TableCell 
-                          className="text-center font-medium py-1"
-                          style={{
-                            backgroundColor: getColorForCustomRange(stock.tenYearRet, 0.05, 0.125, 0.2),
-                            color: '#111',
-                          }}
-                        >
-                          {(stock.tenYearRet * 100).toFixed(2)}%
-                        </TableCell>
-                        <TableCell 
-                          className="text-center font-medium py-1"
-                          style={{
-                            backgroundColor: getColorForCustomRange(stock.vsMkt, -0.05, 0, 0.05),
-                            color: '#111',
-                          }}
-                        >
-                          {(stock.vsMkt * 100).toFixed(2)}%
-                        </TableCell>
-                        <TableCell className="text-center py-1">${stock.buyPrice.toFixed(2)}</TableCell>
-                        <TableCell 
-                          className="text-center font-medium py-1"
-                          style={{
-                            backgroundColor: getColorForCustomRange(stock.percentPlusMinus, -0.1, -0.05, 0.15),
-                            color: '#111',
-                          }}
-                        >
-                          {(stock.percentPlusMinus * 100) >= 0 ? "+" : ""}{(stock.percentPlusMinus * 100).toFixed(2)}%
-                        </TableCell>
-                        <TableCell className="text-center py-1">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={(e) => {
-                              e.preventDefault()
-                              e.stopPropagation()
-                              removeStock(stock.ticker)
-                            }}
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50 h-6 px-2"
-                          >
-                            <X className="w-3 h-3" />
-                          </Button>
-                        </TableCell>
-                      </Link>
+                          <X className="w-3 h-3" />
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -616,81 +632,83 @@ export default function Dashboard() {
                     <TableRow 
                       key={stock.ticker}
                       className="cursor-pointer hover:bg-gray-50 transition-colors border-b border-gray-100"
+                      onClick={() => {
+                        setSelectedStock(stock)
+                        setDrawerOpen(true)
+                      }}
                     >
-                      <Link href={`/dashboard/tracker/${stock.ticker.toLowerCase()}`} className="contents">
-                        <TableCell className="font-medium py-3 sticky left-0 bg-white z-20 border-r border-gray-200">{stock.ticker}</TableCell>
-                        <TableCell className="text-center py-1">{stock.pe5y.toFixed(2)}</TableCell>
-                        <TableCell className="text-center py-1">{stock.peLtm.toFixed(2)}</TableCell>
-                        <TableCell className="text-center py-1">{stock.peFwd.toFixed(2)}</TableCell>
-                        <TableCell 
-                          className="text-center font-medium py-1"
-                          style={{                            color: '#111',
-                          }}
+                      <TableCell className="font-medium py-3 sticky left-0 bg-white z-20 border-r border-gray-200">{stock.ticker}</TableCell>
+                      <TableCell className="text-center py-1">{stock.pe5y.toFixed(2)}</TableCell>
+                      <TableCell className="text-center py-1">{stock.peLtm.toFixed(2)}</TableCell>
+                      <TableCell className="text-center py-1">{stock.peFwd.toFixed(2)}</TableCell>
+                      <TableCell 
+                        className="text-center font-medium py-1"
+                        style={{                            color: '#111',
+                        }}
+                      >
+                        ${stock.week52Low.toFixed(2)}
+                      </TableCell>
+                      <TableCell 
+                        className="text-center font-medium py-1"
+                        style={{
+                          color: '#111',
+                        }}
+                      >
+                        ${stock.week52High.toFixed(2)}
+                      </TableCell>
+                      <TableCell 
+                        className="text-center font-medium py-1"
+                        style={{
+                          backgroundColor: getColorForCustomRange(stock.range, 0.1, 0.2, 0.3),
+                          color: '#111',
+                        }}
+                      >
+                        {stock.range.toFixed(2)}%
+                      </TableCell>
+                      <TableCell className="text-center text-sm py-1">{stock.week52HighDate}</TableCell>
+                      <TableCell className="text-center py-1">{stock.daysOff52w}</TableCell>
+                      <TableCell className="text-center py-1">
+                        <Badge 
+                          variant="secondary" 
+                          className={`${
+                            stock.isGreenOver10Under6 ? "bg-green-200 text-green-800" : "bg-gray-200 text-gray-800"
+                          }`}
                         >
-                          ${stock.week52Low.toFixed(2)}
-                        </TableCell>
-                        <TableCell 
-                          className="text-center font-medium py-1"
-                          style={{
-                            color: '#111',
+                          {stock.over10Under6 || "-"}
+              </Badge>
+                      </TableCell>
+                      <TableCell 
+                        className="text-center font-medium py-1"
+                        style={{
+                          backgroundColor: getColorForCustomRange(((stock.price - stock.week52Low) / stock.week52Low), 0.1, 0.2, 0.3),
+                          color: '#111',
+                        }}
+                      >
+                        {(((stock.price - stock.week52Low) / stock.week52Low) * 100) >= 0 ? "+" : ""}{(((stock.price - stock.week52Low) / stock.week52Low) * 100).toFixed(2)}%
+                      </TableCell>
+                      <TableCell 
+                        className="text-center font-medium py-1"
+                        style={{
+                          backgroundColor: getColorForCustomRange(((stock.price - stock.week52High) / stock.week52High), -0.25, -0.15, 0),
+                          color: '#111',
+                        }}
+                      >
+                        {(((stock.price - stock.week52High) / stock.week52High) * 100) >= 0 ? "+" : ""}{(((stock.price - stock.week52High) / stock.week52High) * 100).toFixed(2)}%
+                      </TableCell>
+                      <TableCell className="text-center py-1">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            removeStock(stock.ticker)
                           }}
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50 h-6 px-2"
                         >
-                          ${stock.week52High.toFixed(2)}
-                        </TableCell>
-                        <TableCell 
-                          className="text-center font-medium py-1"
-                          style={{
-                            backgroundColor: getColorForCustomRange(stock.range, 0.1, 0.2, 0.3),
-                            color: '#111',
-                          }}
-                        >
-                          {stock.range.toFixed(2)}%
-                        </TableCell>
-                        <TableCell className="text-center text-sm py-1">{stock.week52HighDate}</TableCell>
-                        <TableCell className="text-center py-1">{stock.daysOff52w}</TableCell>
-                        <TableCell className="text-center py-1">
-                          <Badge 
-                            variant="secondary" 
-                            className={`${
-                              stock.isGreenOver10Under6 ? "bg-green-200 text-green-800" : "bg-gray-200 text-gray-800"
-                            }`}
-                          >
-                            {stock.over10Under6 || "-"}
-                </Badge>
-                        </TableCell>
-                        <TableCell 
-                          className="text-center font-medium py-1"
-                          style={{
-                            backgroundColor: getColorForCustomRange(((stock.price - stock.week52Low) / stock.week52Low), 0.1, 0.2, 0.3),
-                            color: '#111',
-                          }}
-                        >
-                          {(((stock.price - stock.week52Low) / stock.week52Low) * 100) >= 0 ? "+" : ""}{(((stock.price - stock.week52Low) / stock.week52Low) * 100).toFixed(2)}%
-                        </TableCell>
-                        <TableCell 
-                          className="text-center font-medium py-1"
-                          style={{
-                            backgroundColor: getColorForCustomRange(((stock.price - stock.week52High) / stock.week52High), -0.25, -0.15, 0),
-                            color: '#111',
-                          }}
-                        >
-                          {(((stock.price - stock.week52High) / stock.week52High) * 100) >= 0 ? "+" : ""}{(((stock.price - stock.week52High) / stock.week52High) * 100).toFixed(2)}%
-                        </TableCell>
-                        <TableCell className="text-center py-1">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={(e) => {
-                              e.preventDefault()
-                              e.stopPropagation()
-                              removeStock(stock.ticker)
-                            }}
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50 h-6 px-2"
-                          >
-                            <X className="w-3 h-3" />
-                          </Button>
-                        </TableCell>
-              </Link>
+                          <X className="w-3 h-3" />
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -899,6 +917,83 @@ export default function Dashboard() {
                         )}
                       </button>
                     </TableHead>
+                    <TableHead className="text-center w-14">
+                      <button 
+                        className={`flex items-center justify-center gap-1 hover:text-blue-600 ${sortColumn === "busModel" ? "text-blue-600 font-semibold" : ""}`}
+                        onClick={() => handleSort("busModel")}
+                      >
+                        Bus Mod
+                        {sortColumn === "busModel" && (
+                          <span className="text-blue-600">{sortDirection === "asc" ? "↑" : "↓"}</span>
+                        )}
+                      </button>
+                    </TableHead>
+                    <TableHead className="text-center w-14">
+                      <button 
+                        className={`flex items-center justify-center gap-1 hover:text-blue-600 ${sortColumn === "profit" ? "text-blue-600 font-semibold" : ""}`}
+                        onClick={() => handleSort("profit")}
+                      >
+                        Profit
+                        {sortColumn === "profit" && (
+                          <span className="text-blue-600">{sortDirection === "asc" ? "↑" : "↓"}</span>
+                        )}
+                      </button>
+                    </TableHead>
+                    <TableHead className="text-center w-14">
+                      <button 
+                        className={`flex items-center justify-center gap-1 hover:text-blue-600 ${sortColumn === "balSheet" ? "text-blue-600 font-semibold" : ""}`}
+                        onClick={() => handleSort("balSheet")}
+                      >
+                        Bal Sh
+                        {sortColumn === "balSheet" && (
+                          <span className="text-blue-600">{sortDirection === "asc" ? "↑" : "↓"}</span>
+                        )}
+                      </button>
+                    </TableHead>
+                    <TableHead className="text-center w-14">
+                      <button 
+                        className={`flex items-center justify-center gap-1 hover:text-blue-600 ${sortColumn === "moat" ? "text-blue-600 font-semibold" : ""}`}
+                        onClick={() => handleSort("moat")}
+                      >
+                        Moat
+                        {sortColumn === "moat" && (
+                          <span className="text-blue-600">{sortDirection === "asc" ? "↑" : "↓"}</span>
+                        )}
+                      </button>
+                    </TableHead>
+                    <TableHead className="text-center w-14">
+                      <button 
+                        className={`flex items-center justify-center gap-1 hover:text-blue-600 ${sortColumn === "growth" ? "text-blue-600 font-semibold" : ""}`}
+                        onClick={() => handleSort("growth")}
+                      >
+                        Growth
+                        {sortColumn === "growth" && (
+                          <span className="text-blue-600">{sortDirection === "asc" ? "↑" : "↓"}</span>
+                        )}
+                      </button>
+                    </TableHead>
+                    <TableHead className="text-center w-14">
+                      <button 
+                        className={`flex items-center justify-center gap-1 hover:text-blue-600 ${sortColumn === "management" ? "text-blue-600 font-semibold" : ""}`}
+                        onClick={() => handleSort("management")}
+                      >
+                        Mgmt
+                        {sortColumn === "management" && (
+                          <span className="text-blue-600">{sortDirection === "asc" ? "↑" : "↓"}</span>
+                        )}
+                      </button>
+                    </TableHead>
+                    <TableHead className="text-center w-14">
+                      <button 
+                        className={`flex items-center justify-center gap-1 hover:text-blue-600 ${sortColumn === "histReturn" ? "text-blue-600 font-semibold" : ""}`}
+                        onClick={() => handleSort("histReturn")}
+                      >
+                        Hist Retu
+                        {sortColumn === "histReturn" && (
+                          <span className="text-blue-600">{sortDirection === "asc" ? "↑" : "↓"}</span>
+                        )}
+                      </button>
+                    </TableHead>
                     <TableHead className="text-center w-10">Remove</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -907,102 +1002,146 @@ export default function Dashboard() {
                     <TableRow 
                       key={stock.ticker}
                       className="cursor-pointer hover:bg-gray-50 transition-colors border-b border-gray-100"
+                      onClick={() => {
+                        setSelectedStock(stock)
+                        setDrawerOpen(true)
+                      }}
                     >
-                      <Link href={`/dashboard/tracker/${stock.ticker.toLowerCase()}`} className="contents">
-                        <TableCell className="font-medium py-3 sticky left-0 bg-white z-20 border-r border-gray-200">{stock.ticker}</TableCell>
-                        <TableCell className="text-center py-1">{stock.type}</TableCell>
-                        <TableCell className="text-center py-1">{stock.level}</TableCell>
-                        <TableCell className="text-center py-1">{stock.lastAnnUp}</TableCell>
-                        <TableCell className="text-center py-1">{stock.lastUpdate}</TableCell>
-                        <TableCell className="text-center py-1">{stock.nextRept}</TableCell>
-                        <TableCell className="text-center py-1">
-                          <Badge 
-                            variant="secondary" 
-                            className={`${
-                              stock.update === "✓" ? "bg-green-200 text-green-800" : "bg-gray-200 text-gray-800"
-                            }`}
-                          >
-                            {stock.update}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-center py-1">
-                          <Badge 
-                            variant="secondary" 
-                            className={`${
-                              stock.recommend === "Strong Buy" ? "bg-green-200 text-green-800" : "bg-gray-200 text-gray-800"
-                            }`}
-                          >
-                            {stock.recommend}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-center py-1">{stock.rating.toFixed(1)}</TableCell>
-                        <TableCell className="text-center py-1">{stock.rating2.toFixed(1)}</TableCell>
-                        <TableCell className="text-center py-1">{stock.valueRating.toFixed(1)}</TableCell>
-                        <TableCell 
-                          className="text-center font-medium py-1"
-                          style={{
-                            backgroundColor: getColorForCustomRange(stock.upDn, -0.1, -0.05, 0.15),
-                            color: '#111',
+                      <TableCell className="font-medium py-3 sticky left-0 bg-white z-20 border-r border-gray-200">{stock.ticker}</TableCell>
+                      <TableCell className="text-center py-1">{stock.type}</TableCell>
+                      <TableCell className="text-center py-1">{stock.level}</TableCell>
+                      <TableCell className="text-center py-1">{stock.lastAnnUp}</TableCell>
+                      <TableCell className="text-center py-1">{stock.lastUpdate}</TableCell>
+                      <TableCell className="text-center py-1">{stock.nextRept}</TableCell>
+                      <TableCell className="text-center py-1">
+                        <Badge 
+                          variant="secondary" 
+                          className={`${
+                            stock.update === "✓" ? "bg-green-200 text-green-800" : "bg-gray-200 text-gray-800"
+                          }`}
+                        >
+                          {stock.update}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-center py-1">
+                        <Badge 
+                          variant="secondary" 
+                          className={`${
+                            stock.recommend === "Strong Buy" ? "bg-green-200 text-green-800" : "bg-gray-200 text-gray-800"
+                          }`}
+                        >
+                          {stock.recommend}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-center py-1">{stock.rating.toFixed(1)}</TableCell>
+                      <TableCell className="text-center py-1">{stock.rating2.toFixed(1)}</TableCell>
+                      <TableCell className="text-center py-1">{stock.valueRating.toFixed(1)}</TableCell>
+                      <TableCell 
+                        className="text-center font-medium py-1"
+                        style={{
+                          backgroundColor: getColorForCustomRange(stock.upDn, -0.1, -0.05, 0.15),
+                          color: '#111',
+                        }}
+                      >
+                        {(stock.upDn * 100) >= 0 ? "+" : ""}{(stock.upDn * 100).toFixed(2)}%
+                      </TableCell>
+                      <TableCell 
+                        className="text-center py-1"
+                      >
+                        {stock.sameSh.toFixed(1)}
+                      </TableCell>
+                      <TableCell 
+                        className="text-center font-medium py-1"
+                        style={{
+                          backgroundColor: getColorForCustomRange(stock.cagr, 0.05, 0.125, 0.2),
+                          color: '#111',
+                        }}
+                      >
+                        {(stock.cagr * 100).toFixed(2)}%
+                      </TableCell>
+                      <TableCell 
+                        className="text-center font-medium py-1"
+                        style={{
+                          backgroundColor: getColorForCustomRange(stock.dividendY, 0.02, 0.05, 0.1),
+                          color: '#111',
+                        }}
+                      >
+                        {(stock.dividendY * 100).toFixed(2)}%
+                      </TableCell>
+                      <TableCell 
+                        className="text-center font-medium py-1"
+                        style={{
+                          backgroundColor: getColorForCustomRange(stock.cagi, 0.05, 0.125, 0.2),
+                          color: '#111',
+                        }}
+                      >
+                        {(stock.cagi * 100).toFixed(2)}%
+                      </TableCell>
+                      <TableCell 
+                        className="text-center font-medium py-1"
+                        style={{
+                          backgroundColor: getColorForCustomRange(stock.yield, 0.02, 0.05, 0.1),
+                          color: '#111',
+                        }}
+                      >
+                        {(stock.yield * 100).toFixed(2)}%
+                      </TableCell>
+                      <TableCell 
+                        className="text-center py-1"
+                        style={{ backgroundColor: getColorForCustomRange(stock.busModel ?? 1, 1, 5, 10), color: '#111' }}
+                      >
+                        {stock.busModel !== undefined ? stock.busModel.toFixed(1) : '-'}
+                      </TableCell>
+                      <TableCell 
+                        className="text-center py-1"
+                        style={{ backgroundColor: getColorForCustomRange(stock.profit ?? 1, 1, 5, 10), color: '#111' }}
+                      >
+                        {stock.profit !== undefined ? stock.profit.toFixed(1) : '-'}
+                      </TableCell>
+                      <TableCell 
+                        className="text-center py-1"
+                        style={{ backgroundColor: getColorForCustomRange(stock.balSheet ?? 1, 1, 5, 10), color: '#111' }}
+                      >
+                        {stock.balSheet !== undefined ? stock.balSheet.toFixed(1) : '-'}
+                      </TableCell>
+                      <TableCell 
+                        className="text-center py-1"
+                        style={{ backgroundColor: getColorForCustomRange(stock.moat ?? 1, 1, 5, 10), color: '#111' }}
+                      >
+                        {stock.moat !== undefined ? stock.moat.toFixed(1) : '-'}
+                      </TableCell>
+                      <TableCell 
+                        className="text-center py-1"
+                        style={{ backgroundColor: getColorForCustomRange(stock.growth ?? 1, 1, 5, 10), color: '#111' }}
+                      >
+                        {stock.growth !== undefined ? stock.growth.toFixed(1) : '-'}
+                      </TableCell>
+                      <TableCell 
+                        className="text-center py-1"
+                        style={{ backgroundColor: getColorForCustomRange(stock.management ?? 1, 1, 5, 10), color: '#111' }}
+                      >
+                        {stock.management !== undefined ? stock.management.toFixed(1) : '-'}
+                      </TableCell>
+                      <TableCell 
+                        className="text-center py-1"
+                        style={{ backgroundColor: getColorForCustomRange(stock.histReturn ?? 1, 1, 5, 10), color: '#111' }}
+                      >
+                        {stock.histReturn !== undefined ? stock.histReturn.toFixed(1) : '-'}
+                      </TableCell>
+                      <TableCell className="text-center py-1">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            removeStock(stock.ticker)
                           }}
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50 h-6 px-2"
                         >
-                          {(stock.upDn * 100) >= 0 ? "+" : ""}{(stock.upDn * 100).toFixed(2)}%
-                        </TableCell>
-                        <TableCell 
-                          className="text-center py-1"
-                        >
-                          {stock.sameSh.toFixed(1)}
-                        </TableCell>
-                        <TableCell 
-                          className="text-center font-medium py-1"
-                          style={{
-                            backgroundColor: getColorForCustomRange(stock.cagr, 0.05, 0.125, 0.2),
-                            color: '#111',
-                          }}
-                        >
-                          {(stock.cagr * 100).toFixed(2)}%
-                        </TableCell>
-                        <TableCell 
-                          className="text-center font-medium py-1"
-                          style={{
-                            backgroundColor: getColorForCustomRange(stock.dividendY, 0.02, 0.05, 0.1),
-                            color: '#111',
-                          }}
-                        >
-                          {(stock.dividendY * 100).toFixed(2)}%
-                        </TableCell>
-                        <TableCell 
-                          className="text-center font-medium py-1"
-                          style={{
-                            backgroundColor: getColorForCustomRange(stock.cagi, 0.05, 0.125, 0.2),
-                            color: '#111',
-                          }}
-                        >
-                          {(stock.cagi * 100).toFixed(2)}%
-                        </TableCell>
-                        <TableCell 
-                          className="text-center font-medium py-1"
-                          style={{
-                            backgroundColor: getColorForCustomRange(stock.yield, 0.02, 0.05, 0.1),
-                            color: '#111',
-                          }}
-                        >
-                          {(stock.yield * 100).toFixed(2)}%
-                        </TableCell>
-                        <TableCell className="text-center py-1">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={(e) => {
-                              e.preventDefault()
-                              e.stopPropagation()
-                              removeStock(stock.ticker)
-                            }}
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50 h-6 px-2"
-                          >
-                            <X className="w-3 h-3" />
-                          </Button>
-                        </TableCell>
-              </Link>
+                          <X className="w-3 h-3" />
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
