@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Plus, X, Search, Check } from "lucide-react"
-import { getColorForCustomRange } from "@/utils/getColorForChange"
+import { getColorForCustomRange } from "@/lib/utils/getColorForChange"
 import stocksData from "@/data/stocks.json"
 import { StockDetailDrawer } from "@/components/ui/stock-detail-drawer"
 
@@ -21,6 +21,8 @@ export default function Dashboard() {
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc")
   const [selectedStock, setSelectedStock] = useState<any>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [editMode, setEditMode] = useState(false)
+  const [selectedStocks, setSelectedStocks] = useState<Set<string>>(new Set())
 
   // Use imported stock data
   const [stocks, setStocks] = useState(stocksData)
@@ -90,6 +92,33 @@ export default function Dashboard() {
     setStocks(stocks.filter(stock => stock.ticker !== tickerToRemove))
   }
 
+  const toggleEditMode = () => {
+    setEditMode(!editMode)
+    if (editMode) {
+      setSelectedStocks(new Set())
+    } else {
+      // Close drawer when entering edit mode
+      setDrawerOpen(false)
+      setSelectedStock(null)
+    }
+  }
+
+  const toggleStockSelection = (ticker: string) => {
+    const newSelected = new Set(selectedStocks)
+    if (newSelected.has(ticker)) {
+      newSelected.delete(ticker)
+    } else {
+      newSelected.add(ticker)
+    }
+    setSelectedStocks(newSelected)
+  }
+
+  const removeSelectedStocks = () => {
+    setStocks(stocks.filter(stock => !selectedStocks.has(stock.ticker)))
+    setSelectedStocks(new Set())
+    setEditMode(false)
+  }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     addStock()
@@ -137,38 +166,25 @@ export default function Dashboard() {
         open={drawerOpen}
         onOpenChange={setDrawerOpen}
       />
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Stock Dashboard</h1>
-          <p className="text-gray-600">Track and analyze your investment portfolio</p>
-        </div>
-        <Button 
-          onClick={() => setShowAddForm(!showAddForm)}
-          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
-        >
-          <Plus className="w-4 h-4" />
-          Add Stock
-        </Button>
-      </div>
-      
+      {/* Add Stock Form */}
       {showAddForm && (
-        <Card className="border border-gray-200 shadow-sm">
-          <CardContent className="pt-6">
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Add New Stock</CardTitle>
+          </CardHeader>
+          <CardContent>
             <form onSubmit={handleSubmit} className="flex gap-4 items-end">
-              <div className="space-y-2 flex-1">
-                <Label htmlFor="ticker" className="text-sm font-medium">Ticker Symbol</Label>
+              <div className="flex-1">
+                <Label htmlFor="ticker">Ticker Symbol</Label>
                 <Input
                   id="ticker"
                   value={newTicker}
-                  onChange={(e) => setNewTicker(e.target.value.toUpperCase())}
-                  placeholder="AAPL"
+                  onChange={(e) => setNewTicker(e.target.value)}
+                  placeholder="Enter ticker symbol"
                   className="mt-1"
-                  maxLength={5}
                 />
               </div>
-              <Button type="submit" disabled={!newTicker.trim()} className="bg-blue-600 hover:bg-blue-700">
-                Add Stock
-              </Button>
+              <Button type="submit">Add Stock</Button>
               <Button 
                 type="button" 
                 variant="outline" 
@@ -180,6 +196,47 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       )}
+
+      {/* Edit/Remove Controls */}
+      <div className="flex justify-between items-center mb-6">
+        <div className="flex gap-2">
+          {!showAddForm && (
+            <Button onClick={() => setShowAddForm(true)} className="flex items-center gap-2">
+              <Plus className="w-4 h-4" />
+              Add Stock
+            </Button>
+          )}
+        </div>
+        <div className="flex gap-2">
+          {!editMode ? (
+            <Button 
+              variant="outline" 
+              onClick={toggleEditMode}
+              className="flex items-center gap-2"
+            >
+              Edit / Remove
+            </Button>
+          ) : (
+            <>
+              <Button 
+                variant="destructive" 
+                onClick={removeSelectedStocks}
+                disabled={selectedStocks.size === 0}
+                className="flex items-center gap-2"
+              >
+                Remove Selected ({selectedStocks.size})
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={toggleEditMode}
+                className="flex items-center gap-2"
+              >
+                Cancel
+              </Button>
+            </>
+          )}
+        </div>
+      </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6 w-full">
         <TabsList className="grid w-full grid-cols-3 bg-gray-100 p-1 rounded-lg">
@@ -354,7 +411,6 @@ export default function Dashboard() {
                         )}
                           </button>
                     </TableHead>
-                    <TableHead className="text-center w-12">Remove</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -363,11 +419,27 @@ export default function Dashboard() {
                       key={stock.ticker}
                       className="cursor-pointer hover:bg-gray-50 transition-colors border-b border-gray-100"
                       onClick={() => {
-                        setSelectedStock(stock)
-                        setDrawerOpen(true)
+                        if (!editMode) {
+                          setSelectedStock(stock)
+                          setDrawerOpen(true)
+                        }
                       }}
                     >
-                      <TableCell className="font-medium py-3 sticky left-0 bg-white z-10">{stock.ticker}</TableCell>
+                      <TableCell className="font-medium py-3 sticky left-0 bg-white z-10">
+                        {editMode ? (
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={selectedStocks.has(stock.ticker)}
+                              onChange={() => toggleStockSelection(stock.ticker)}
+                              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                            />
+                            <span>{stock.ticker}</span>
+                          </div>
+                        ) : (
+                          stock.ticker
+                        )}
+                      </TableCell>
                       <TableCell className="text-center py-1">
                         {stock.held ? <Check className="w-4 h-4 text-green-600 mx-auto" /> : ""}
                       </TableCell>
@@ -438,20 +510,6 @@ export default function Dashboard() {
                         }}
                       >
                         {(stock.percentPlusMinus * 100) >= 0 ? "+" : ""}{(stock.percentPlusMinus * 100).toFixed(2)}%
-                      </TableCell>
-                      <TableCell className="text-center py-1">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={(e) => {
-                            e.preventDefault()
-                            e.stopPropagation()
-                            removeStock(stock.ticker)
-                          }}
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50 h-6 px-2"
-                        >
-                          <X className="w-3 h-3" />
-                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -606,7 +664,6 @@ export default function Dashboard() {
                         )}
                           </button>
                     </TableHead>
-                    <TableHead className="text-center w-16">Remove</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -615,11 +672,27 @@ export default function Dashboard() {
                       key={stock.ticker}
                       className="cursor-pointer hover:bg-gray-50 transition-colors border-b border-gray-100"
                       onClick={() => {
-                        setSelectedStock(stock)
-                        setDrawerOpen(true)
+                        if (!editMode) {
+                          setSelectedStock(stock)
+                          setDrawerOpen(true)
+                        }
                       }}
                     >
-                      <TableCell className="font-medium py-3 sticky left-0 bg-white z-20 border-r border-gray-200">{stock.ticker}</TableCell>
+                      <TableCell className="font-medium py-3 sticky left-0 bg-white z-20 border-r border-gray-200">
+                        {editMode ? (
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={selectedStocks.has(stock.ticker)}
+                              onChange={() => toggleStockSelection(stock.ticker)}
+                              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                            />
+                            <span>{stock.ticker}</span>
+                          </div>
+                        ) : (
+                          stock.ticker
+                        )}
+                      </TableCell>
                       <TableCell className="text-center py-1">{stock.pe5y.toFixed(2)}</TableCell>
                       <TableCell className="text-center py-1">{stock.peLtm.toFixed(2)}</TableCell>
                       <TableCell className="text-center py-1">{stock.peFwd.toFixed(2)}</TableCell>
@@ -676,20 +749,6 @@ export default function Dashboard() {
                         }}
                       >
                         {(((stock.price - stock.week52High) / stock.week52High) * 100) >= 0 ? "+" : ""}{(((stock.price - stock.week52High) / stock.week52High) * 100).toFixed(2)}%
-                      </TableCell>
-                      <TableCell className="text-center py-1">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={(e) => {
-                            e.preventDefault()
-                            e.stopPropagation()
-                            removeStock(stock.ticker)
-                          }}
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50 h-6 px-2"
-                        >
-                          <X className="w-3 h-3" />
-                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -966,7 +1025,6 @@ export default function Dashboard() {
                         )}
                       </button>
                     </TableHead>
-                    <TableHead className="text-center w-10">Remove</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -975,11 +1033,27 @@ export default function Dashboard() {
                       key={stock.ticker}
                       className="cursor-pointer hover:bg-gray-50 transition-colors border-b border-gray-100"
                       onClick={() => {
-                        setSelectedStock(stock)
-                        setDrawerOpen(true)
+                        if (!editMode) {
+                          setSelectedStock(stock)
+                          setDrawerOpen(true)
+                        }
                       }}
                     >
-                      <TableCell className="font-medium py-3 sticky left-0 bg-white z-20 border-r border-gray-200">{stock.ticker}</TableCell>
+                      <TableCell className="font-medium py-3 sticky left-0 bg-white z-20 border-r border-gray-200">
+                        {editMode ? (
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={selectedStocks.has(stock.ticker)}
+                              onChange={() => toggleStockSelection(stock.ticker)}
+                              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                            />
+                            <span>{stock.ticker}</span>
+                          </div>
+                        ) : (
+                          stock.ticker
+                        )}
+                      </TableCell>
                       <TableCell className="text-center py-1">{stock.type}</TableCell>
                       <TableCell className="text-center py-1">{stock.level}</TableCell>
                       <TableCell className="text-center py-1">{stock.lastAnnUp}</TableCell>
@@ -1106,20 +1180,6 @@ export default function Dashboard() {
                         style={{ backgroundColor: getColorForCustomRange(stock.histReturn ?? 1, 1, 5, 10), color: '#111' }}
                       >
                         {stock.histReturn !== undefined ? stock.histReturn.toFixed(1) : '-'}
-                      </TableCell>
-                      <TableCell className="text-center py-1">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={(e) => {
-                            e.preventDefault()
-                            e.stopPropagation()
-                            removeStock(stock.ticker)
-                          }}
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50 h-6 px-2"
-                        >
-                          <X className="w-3 h-3" />
-                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}

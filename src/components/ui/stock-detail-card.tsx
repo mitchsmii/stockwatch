@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { X, TrendingUp, TrendingDown, DollarSign, BarChart3 } from "lucide-react"
-import { getColorForCustomRange } from "@/utils/getColorForChange"
+import { getColorForCustomRange } from "@/lib/utils/getColorForChange"
 
 interface StockDetailCardProps {
   stock: any

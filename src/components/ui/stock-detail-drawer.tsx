@@ -11,7 +11,7 @@ import {
   DrawerTitle,
 } from "@/components/ui/drawer"
 import { TrendingUp, DollarSign, BarChart3 } from "lucide-react"
-import { getColorForCustomRange } from "@/utils/getColorForChange"
+import { getColorForCustomRange } from "@/lib/utils/getColorForChange"
 
 interface StockDetailDrawerProps {
   stock: any
