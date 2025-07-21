@@ -998,19 +998,19 @@ export default function Dashboard() {
                       </TableCell>
                       <TableCell 
                         className="text-center py-1"
-                        style={{ backgroundColor: getColorForCustomRange(stock.rating, 7, 8.5, 10), color: '#111' }}
+                        style={{ backgroundColor: getColorForCustomRange(stock.rating, 1, 5, 10), color: '#111' }}
                       >
                         {stock.rating.toFixed(1)}
                       </TableCell>
                       <TableCell 
                         className="text-center py-1"
-                        style={{ backgroundColor: getColorForCustomRange(stock.rating2, 7, 8.5, 10), color: '#111' }}
+                        style={{ backgroundColor: getColorForCustomRange(stock.rating2, 1, 5, 10), color: '#111' }}
                       >
                         {stock.rating2.toFixed(1)}
                       </TableCell>
                       <TableCell 
                         className="text-center py-1"
-                        style={{ backgroundColor: getColorForCustomRange(stock.valueRating, 7, 8.5, 10), color: '#111' }}
+                        style={{ backgroundColor: getColorForCustomRange(stock.valueRating, 1, 5, 10), color: '#111' }}
                       >
                         {stock.valueRating.toFixed(1)}
                       </TableCell>
