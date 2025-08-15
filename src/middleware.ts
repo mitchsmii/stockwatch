@@ -57,10 +57,16 @@ export function middleware(request: NextRequest) {
   }
   
   console.log('❌ Authentication failed, returning 401')
+  
+  // Force authentication prompt with more aggressive headers
   return new NextResponse('Authentication required', {
     status: 401,
     headers: {
       'WWW-Authenticate': 'Basic realm="IntrinArc Dashboard"',
+      'Cache-Control': 'no-cache, no-store, must-revalidate, private',
+      'Pragma': 'no-cache',
+      'Expires': '0',
+      'Content-Type': 'text/plain; charset=utf-8',
     },
   })
 }
