@@ -10,7 +10,7 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
 } from "@/components/ui/sidebar"
-import { BarChart3, TrendingUp, Settings, Home } from "lucide-react"
+import { BarChart3, Settings, Home } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 

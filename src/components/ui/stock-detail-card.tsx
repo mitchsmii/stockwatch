@@ -1,11 +1,34 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { X, TrendingUp, TrendingDown, DollarSign, BarChart3 } from "lucide-react"
+import { X, TrendingUp, DollarSign, BarChart3 } from "lucide-react"
 import { getColorForCustomRange } from "@/lib/utils/getColorForChange"
 
 interface StockDetailCardProps {
-  stock: any
+  stock: {
+    ticker: string
+    price: number
+    marketCap: number
+    oneDayChange: number
+    oneWeekChange: number
+    oneMonthChange: number
+    pe5y?: number
+    peLtm?: number
+    peFwd?: number
+    intValue?: number
+    week52Low?: number
+    week52High?: number
+    range?: number
+    buyPrice?: number
+    buyUpsidePercent?: number
+    tenYearEstReturn?: number
+    beta?: number
+    dividendYield?: number
+    volume?: number
+    percentPlusMinus?: number
+    held?: boolean
+    recommend?: string
+  }
   onClose: () => void
 }
 
@@ -33,7 +56,7 @@ export function StockDetailCard({ stock, onClose }: StockDetailCardProps) {
             </div>
             <div className="space-y-1">
               <p className="text-sm text-gray-500">Market Cap</p>
-              <p className="text-lg font-semibold">${(stock.mktCap / 1000).toFixed(1)}B</p>
+                                  <p className="text-lg font-semibold">${(stock.marketCap / 1000).toFixed(1)}B</p>
             </div>
           </div>
 
@@ -49,13 +72,13 @@ export function StockDetailCard({ stock, onClose }: StockDetailCardProps) {
                 <p 
                   className="text-sm font-medium"
                   style={{
-                    backgroundColor: getColorForCustomRange(stock.oneDay, -0.02, 0, 0.02),
+                                            backgroundColor: getColorForCustomRange(stock.oneDayChange / 100, -0.02, 0, 0.02),
                     color: '#111',
                     padding: '2px 6px',
                     borderRadius: '4px',
                   }}
                 >
-                  {(stock.oneDay * 100) >= 0 ? `+${(stock.oneDay * 100).toFixed(2)}%` : `(${Math.abs(stock.oneDay * 100).toFixed(2)}%)`}
+                                          {(stock.oneDayChange) >= 0 ? `+${(stock.oneDayChange).toFixed(2)}%` : `(${Math.abs(stock.oneDayChange).toFixed(2)}%)`}
                 </p>
               </div>
               <div className="space-y-1">
@@ -63,13 +86,13 @@ export function StockDetailCard({ stock, onClose }: StockDetailCardProps) {
                 <p 
                   className="text-sm font-medium"
                   style={{
-                    backgroundColor: getColorForCustomRange(stock.oneWeek, -0.05, 0, 0.05),
+                                            backgroundColor: getColorForCustomRange(stock.oneWeekChange / 100, -0.05, 0, 0.05),
                     color: '#111',
                     padding: '2px 6px',
                     borderRadius: '4px',
                   }}
                 >
-                  {(stock.oneWeek * 100) >= 0 ? `+${(stock.oneWeek * 100).toFixed(2)}%` : `(${Math.abs(stock.oneWeek * 100).toFixed(2)}%)`}
+                                          {(stock.oneWeekChange) >= 0 ? `+${(stock.oneWeekChange).toFixed(2)}%` : `(${Math.abs(stock.oneWeekChange).toFixed(2)}%)`}
                 </p>
               </div>
               <div className="space-y-1">
@@ -77,29 +100,16 @@ export function StockDetailCard({ stock, onClose }: StockDetailCardProps) {
                 <p 
                   className="text-sm font-medium"
                   style={{
-                    backgroundColor: getColorForCustomRange(stock.oneMonth, -0.05, 0, 0.05),
+                                            backgroundColor: getColorForCustomRange(stock.oneMonthChange / 100, -0.05, 0, 0.05),
                     color: '#111',
                     padding: '2px 6px',
                     borderRadius: '4px',
                   }}
                 >
-                  {(stock.oneMonth * 100) >= 0 ? `+${(stock.oneMonth * 100).toFixed(2)}%` : `(${Math.abs(stock.oneMonth * 100).toFixed(2)}%)`}
+                  {(stock.oneMonthChange) >= 0 ? `+${(stock.oneMonthChange).toFixed(2)}%` : `(${Math.abs(stock.oneMonthChange).toFixed(2)}%)`}
                 </p>
               </div>
-              <div className="space-y-1">
-                <p className="text-xs text-gray-500">1 Year</p>
-                <p 
-                  className="text-sm font-medium"
-                  style={{
-                    backgroundColor: getColorForCustomRange(stock.oneYear, -0.15, 0, 0.15),
-                    color: '#111',
-                    padding: '2px 6px',
-                    borderRadius: '4px',
-                  }}
-                >
-                  {(stock.oneYear * 100) >= 0 ? `+${(stock.oneYear * 100).toFixed(2)}%` : `(${Math.abs(stock.oneYear * 100).toFixed(2)}%)`}
-                </p>
-              </div>
+
             </div>
           </div>
 
@@ -147,7 +157,7 @@ export function StockDetailCard({ stock, onClose }: StockDetailCardProps) {
               <p 
                 className="text-sm font-medium"
                 style={{
-                  backgroundColor: getColorForCustomRange(stock.range, 0.1, 0.2, 0.3),
+                  backgroundColor: getColorForCustomRange(stock.range || 0, 0.1, 0.2, 0.3),
                   color: '#111',
                   padding: '2px 6px',
                   borderRadius: '4px',
@@ -175,13 +185,13 @@ export function StockDetailCard({ stock, onClose }: StockDetailCardProps) {
                 <p 
                   className="text-sm font-medium"
                   style={{
-                    backgroundColor: getColorForCustomRange(stock.percentPlusMinus, -0.1, -0.05, 0.15),
+                    backgroundColor: getColorForCustomRange(stock.percentPlusMinus || 0, -0.1, -0.05, 0.15),
                     color: '#111',
                     padding: '2px 6px',
                     borderRadius: '4px',
                   }}
                 >
-                  {(stock.percentPlusMinus * 100) >= 0 ? "+" : ""}{(stock.percentPlusMinus * 100)?.toFixed(2) || 'N/A'}%
+                  {((stock.percentPlusMinus || 0) * 100) >= 0 ? "+" : ""}{((stock.percentPlusMinus || 0) * 100).toFixed(2)}%
                 </p>
               </div>
             </div>

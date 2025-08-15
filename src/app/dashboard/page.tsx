@@ -1,14 +1,13 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Plus, X, Search, Check } from "lucide-react"
+import { Plus, X, Check } from "lucide-react"
 import { getColorForCustomRange } from "@/lib/utils/getColorForChange"
 import stocksData from "@/data/stocks.json"
 import { StockDetailDrawer } from "@/components/ui/stock-detail-drawer"
@@ -21,7 +20,7 @@ export default function Dashboard() {
   const [showAddForm, setShowAddForm] = useState(false)
   const [sortColumn, setSortColumn] = useState("")
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc")
-  const [selectedStock, setSelectedStock] = useState<any>(null)
+  const [selectedStock, setSelectedStock] = useState<typeof stocksData[0] | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [editMode, setEditMode] = useState(false)
   const [selectedStocks, setSelectedStocks] = useState<Set<string>>(new Set())
@@ -30,10 +29,18 @@ export default function Dashboard() {
   const [stocks, setStocks] = useState(stocksData)
 
   // Polygon API data
-  const { quotes, companyOverviews, financialData, loading, error, refreshData, updateStock } = usePolygonData()
+  const { companyOverviews, loading, error, refreshData } = usePolygonData()
   
   // Store quotes by time period
-  const [quotesByPeriod, setQuotesByPeriod] = useState<Record<string, any[]>>({
+  const [quotesByPeriod, setQuotesByPeriod] = useState<Record<string, Array<{
+    symbol: string
+    open: number
+    close: number
+    timestamp: number
+    change: number
+    changePercent: number
+    dataRange?: string
+  }>>>({
     day: [],
     week: [],
     month: [],
@@ -82,9 +89,7 @@ export default function Dashboard() {
     }
   }
 
-  const removeStock = (tickerToRemove: string) => {
-    setStocks(stocks.filter(stock => stock.ticker !== tickerToRemove))
-  }
+
 
   const toggleEditMode = () => {
     setEditMode(!editMode)
@@ -129,7 +134,15 @@ export default function Dashboard() {
     const monthQuotes = await refreshData(symbols, 'month')
     console.log('📊 month quotes received:', monthQuotes)
     
-    const newQuotesByPeriod: Record<string, any[]> = {
+    const newQuotesByPeriod: Record<string, Array<{
+      symbol: string
+      open: number
+      close: number
+      timestamp: number
+      change: number
+      changePercent: number
+      dataRange?: string
+    }>> = {
       day: dayQuotes,
       week: weekQuotes,
       month: monthQuotes
@@ -157,8 +170,8 @@ export default function Dashboard() {
     if (!sortColumn) return stocks
 
     return [...stocks].sort((a, b) => {
-      let aVal = a[sortColumn as keyof typeof a]
-      let bVal = b[sortColumn as keyof typeof b]
+      const aVal = a[sortColumn as keyof typeof a]
+      const bVal = b[sortColumn as keyof typeof b]
 
       // Handle numeric values
       if (typeof aVal === 'number' && typeof bVal === 'number') {
@@ -200,12 +213,11 @@ export default function Dashboard() {
   const sortedStocks = getSortedStocks()
 
   // Helper function to get real data from Polygon API
-  const getRealStockData = (stock: any) => {
+  const getRealStockData = (stock: typeof stocksData[0]) => {
     const dayQuote = quotesByPeriod.day.find(q => q.symbol === stock.ticker)
     const weekQuote = quotesByPeriod.week.find(q => q.symbol === stock.ticker)
     const monthQuote = quotesByPeriod.month.find(q => q.symbol === stock.ticker)
     const overview = companyOverviews[stock.ticker]
-    const financial = financialData[stock.ticker]
     
     if (dayQuote) {
       return {

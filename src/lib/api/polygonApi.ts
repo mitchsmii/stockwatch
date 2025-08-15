@@ -64,6 +64,7 @@ export interface FinancialData {
 }
 
 export class PolygonApi {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private static async makeRequest(endpoint: string): Promise<any> {
     const url = `${BASE_URL}${endpoint}`
     
@@ -353,12 +354,12 @@ export class PolygonApi {
     const mostRecentFive = data.results.slice(0, 5)
     
     // Sort them in ascending order (oldest to newest) for chronological order
-    const sortedResults = mostRecentFive.sort((a: any, b: any) => a.t - b.t)
+    const sortedResults = mostRecentFive.sort((a: { t: number }, b: { t: number }) => a.t - b.t)
     
     console.log(`✅ Found ${sortedResults.length} trading days for ${symbol}`)
     console.log(`📅 Date range: ${new Date(sortedResults[0].t).toISOString().split('T')[0]} to ${new Date(sortedResults[sortedResults.length-1].t).toISOString().split('T')[0]}`)
     
-    return sortedResults.map((bar: any) => ({
+    return sortedResults.map((bar: { t: number; o: number; h: number; l: number; c: number; v: number; vw?: number }) => ({
       date: new Date(bar.t).toISOString().split('T')[0],
       open: bar.o,
       high: bar.h,
@@ -462,7 +463,16 @@ export class PolygonApi {
   }
 
   // Get historical data for calculating returns
-  static async getHistoricalData(symbol: string, days: number = 365): Promise<any> {
+  static async getHistoricalData(symbol: string, days: number = 365): Promise<{
+    results?: Array<{
+      t: number
+      o: number
+      h: number
+      l: number
+      c: number
+      v: number
+    }>
+  } | null> {
     const endpoint = `/v2/aggs/ticker/${symbol}/range/1/day/${new Date().toISOString().split('T')[0]}/${new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}?adjusted=true&apiKey=${POLYGON_API_KEY}`
     return await this.makeRequest(endpoint)
   }
