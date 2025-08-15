@@ -25,7 +25,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
         if (response.ok) {
           setIsAuthenticated(true)
         }
-      } catch (error) {
+      } catch {
         // Silently fail - user needs to authenticate
       }
     }
@@ -51,7 +51,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
       } else {
         setError('Invalid credentials')
       }
-    } catch (error) {
+    } catch {
       setError('Authentication failed')
     }
   }

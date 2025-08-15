@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     if (user === process.env.BASIC_AUTH_USER && pwd === process.env.BASIC_AUTH_PASSWORD) {
       return NextResponse.json({ authenticated: true })
     }
-  } catch (error) {
+  } catch {
     // Invalid auth header format
   }
   
