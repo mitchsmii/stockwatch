@@ -25,8 +25,8 @@ export function AppSidebar() {
             <BarChart3 className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h2 className="text-lg font-bold text-gray-900">Stock Tracker</h2>
-            <p className="text-sm text-gray-500">Investment Dashboard</p>
+                    <h2 className="text-lg font-bold text-gray-900">IntrinArc</h2>
+        <p className="text-sm text-gray-500">Investment Dashboard</p>
           </div>
         </div>
       </SidebarHeader>

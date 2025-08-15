@@ -63,9 +63,30 @@ export function usePolygonData(): UsePolygonDataReturn {
       // Get quotes for all symbols
       let newQuotes: StockQuote[]
       if (dataRange === 'week') {
-        newQuotes = await PolygonApi.getMultipleWeeklyQuotes(symbols)
+        // Use the new getMultipleWeeklyBars function for accurate 5-day data
+        console.log('📅 Fetching weekly data using new getMultipleWeeklyBars function...')
+        const weeklyBars = await PolygonApi.getMultipleWeeklyBars(symbols)
+        console.log('📊 Weekly bars received:', weeklyBars.map(bar => ({
+          symbol: bar.symbol,
+          dateRange: `${bar.startDate} to ${bar.endDate}`,
+          open: bar.open,
+          close: bar.close
+        })))
+        
+        // Convert WeeklyBar to StockQuote format for compatibility
+        newQuotes = weeklyBars.map(bar => ({
+          symbol: bar.symbol,
+          open: bar.open,
+          close: bar.close,
+          timestamp: bar.timestamp,
+          change: bar.close - bar.open,
+          changePercent: ((bar.close - bar.open) / bar.open) * 100,
+          dataRange: 'week'
+        }))
       } else if (dataRange === 'month') {
-        newQuotes = await PolygonApi.getMultipleMonthlyQuotes(symbols)
+        // Use the new exact monthly calculation function
+        console.log('📅 Fetching monthly data using exact 1-month calculation...')
+        newQuotes = await PolygonApi.getMultipleMonthlyQuotesExact(symbols)
       } else {
         newQuotes = await PolygonApi.getMultipleQuotes(symbols, dataRange)
       }

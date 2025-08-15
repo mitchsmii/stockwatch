@@ -11,6 +11,30 @@ export interface StockQuote {
   dataRange?: string
 }
 
+export interface DailyBar {
+  date: string
+  open: number
+  high: number
+  low: number
+  close: number
+  volume: number
+  vwap?: number
+  timestamp: number
+}
+
+export interface WeeklyBar {
+  symbol: string
+  open: number
+  high: number
+  low: number
+  close: number
+  volume: number
+  vwap?: number
+  startDate: string
+  endDate: string
+  timestamp: number
+}
+
 export interface CompanyOverview {
   symbol: string
   name: string
@@ -180,6 +204,53 @@ export class PolygonApi {
     return results.filter(quote => quote !== null) as StockQuote[]
   }
 
+  // Get monthly stock quote with exact 1-month calculation
+  static async getMonthlyQuoteExact(symbol: string): Promise<StockQuote | null> {
+    const now = new Date()
+    
+    // Calculate exactly 1 month ago from today (by calendar date, not by 30 days)
+    const oneMonthAgo = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate())
+    
+    // Calculate the exact number of days between the two dates
+    const timeDiff = now.getTime() - oneMonthAgo.getTime()
+    const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24))
+    
+    const fromDate = oneMonthAgo.toISOString().split('T')[0]
+    const toDate = now.toISOString().split('T')[0]
+    
+    console.log(`📅 Monthly exact calculation: ${fromDate} to ${toDate} (${daysDiff} days)`)
+    console.log(`📊 Today: ${now.toDateString()}, One month ago: ${oneMonthAgo.toDateString()}`)
+    
+    // Use the exact day span for the API request
+    const endpoint = `/v2/aggs/ticker/${symbol}/range/1/day/${fromDate}/${toDate}?adjusted=true&sort=asc&limit=120&apiKey=${POLYGON_API_KEY}`
+    const data = await this.makeRequest(endpoint)
+    
+    if (!data || !data.results || data.results.length === 0) {
+      console.log(`❌ No monthly data returned for ${symbol}`)
+      return null
+    }
+
+    const results = data.results
+    const first = results[0]
+    const last = results[results.length - 1]
+    
+    // Calculate change from exactly 1 month ago to today
+    const change = last.c - first.o
+    const changePercent = ((last.c - first.o) / first.o) * 100
+    
+    console.log(`${symbol} : 📊 Monthly exact: Open  ${first.o} (${fromDate}), Close ${last.c} (${toDate})`)
+
+    return {
+      symbol: symbol.toUpperCase(),
+      open: first.o || 0,
+      close: last.c || 0,
+      timestamp: last.t || Date.now(),
+      change: change,
+      changePercent: changePercent,
+      dataRange: 'month'
+    }
+  }
+
   // Get monthly stock quote
   static async getMonthlyQuote(symbol: string): Promise<StockQuote | null> {
     // Calculate date range for exactly 30 days ago
@@ -218,20 +289,153 @@ export class PolygonApi {
     }
   }
 
-  // Get multiple monthly quotes at once (parallel processing)
+  // Get multiple monthly quotes
   static async getMultipleMonthlyQuotes(symbols: string[]): Promise<StockQuote[]> {
-    const quotePromises = symbols.map(async (symbol) => {
-      try {
+    const quotes: StockQuote[] = []
+    
+    try {
+      const promises = symbols.map(async (symbol) => {
         const quote = await this.getMonthlyQuote(symbol)
         return quote
-      } catch (error) {
-        console.error(`Failed to get monthly quote for ${symbol}:`, error)
-        return null
-      }
-    })
+      })
+      
+      const results = await Promise.all(promises)
+      quotes.push(...results.filter(Boolean) as StockQuote[])
+    } catch (error) {
+      console.error('Error fetching multiple monthly quotes:', error)
+    }
     
-    const results = await Promise.all(quotePromises)
-    return results.filter(quote => quote !== null) as StockQuote[]
+    return quotes
+  }
+
+  // Get multiple monthly quotes with exact 1-month calculation
+  static async getMultipleMonthlyQuotesExact(symbols: string[]): Promise<StockQuote[]> {
+    const quotes: StockQuote[] = []
+    
+    try {
+      const promises = symbols.map(async (symbol) => {
+        const quote = await this.getMonthlyQuoteExact(symbol)
+        return quote
+      })
+      
+      const results = await Promise.all(promises)
+      quotes.push(...results.filter(Boolean) as StockQuote[])
+    } catch (error) {
+      console.error('Error fetching multiple monthly quotes with exact calculation:', error)
+    }
+    
+    return quotes
+  }
+
+  // Get the most recent 5 consecutive U.S. market trading days
+  static async getLastFiveTradingDays(symbol: string): Promise<DailyBar[]> {
+    const now = new Date()
+    // Request a broad date window (last 30 calendar days) to ensure we get 5 trading days
+    const from = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000))
+    
+    const fromDate = from.toISOString().split('T')[0]
+    const toDate = now.toISOString().split('T')[0]
+    
+    // First, let's get more data to ensure we have enough trading days
+    const endpoint = `/v2/aggs/ticker/${symbol}/range/1/day/${fromDate}/${toDate}?adjusted=true&sort=desc&limit=10&apiKey=${POLYGON_API_KEY}`
+    
+    console.log(`📅 Fetching trading days for ${symbol}: ${fromDate} to ${toDate}`)
+    
+    const data = await this.makeRequest(endpoint)
+    
+    if (!data || !data.results || data.results.length === 0) {
+      console.log(`❌ No data returned for ${symbol}`)
+      return []
+    }
+
+    // The results are already sorted by desc (newest first), so we take the first 5
+    // This ensures we get the most recent 5 trading days including today if it's a trading day
+    const mostRecentFive = data.results.slice(0, 5)
+    
+    // Sort them in ascending order (oldest to newest) for chronological order
+    const sortedResults = mostRecentFive.sort((a: any, b: any) => a.t - b.t)
+    
+    console.log(`✅ Found ${sortedResults.length} trading days for ${symbol}`)
+    console.log(`📅 Date range: ${new Date(sortedResults[0].t).toISOString().split('T')[0]} to ${new Date(sortedResults[sortedResults.length-1].t).toISOString().split('T')[0]}`)
+    
+    return sortedResults.map((bar: any) => ({
+      date: new Date(bar.t).toISOString().split('T')[0],
+      open: bar.o,
+      high: bar.h,
+      low: bar.l,
+      close: bar.c,
+      volume: bar.v,
+      vwap: bar.vw,
+      timestamp: bar.t
+    }))
+  }
+
+  // Compute a weekly bar from 5 consecutive trading days
+  static computeWeeklyBar(symbol: string, dailyBars: DailyBar[]): WeeklyBar | null {
+    if (dailyBars.length !== 5) {
+      console.log(`❌ Expected 5 daily bars, got ${dailyBars.length}`)
+      return null
+    }
+
+    // Sort by date to ensure chronological order
+    const sortedBars = dailyBars.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    
+    const firstDay = sortedBars[0]
+    const lastDay = sortedBars[4]
+    
+    // Calculate weekly bar
+    const weeklyBar: WeeklyBar = {
+      symbol: symbol.toUpperCase(),
+      open: firstDay.open,
+      close: lastDay.close,
+      high: Math.max(...sortedBars.map(bar => bar.high)),
+      low: Math.min(...sortedBars.map(bar => bar.low)),
+      volume: sortedBars.reduce((sum, bar) => sum + bar.volume, 0),
+      startDate: firstDay.date,
+      endDate: lastDay.date,
+      timestamp: lastDay.timestamp
+    }
+
+    // Calculate VWAP if all days have it
+    const allHaveVwap = sortedBars.every(bar => bar.vwap !== undefined)
+    if (allHaveVwap) {
+      const volumeWeightedSum = sortedBars.reduce((sum, bar) => sum + (bar.vwap! * bar.volume), 0)
+      const totalVolume = weeklyBar.volume
+      weeklyBar.vwap = volumeWeightedSum / totalVolume
+    }
+
+    console.log(`📊 Weekly bar for ${symbol}: Open ${weeklyBar.open}, Close ${weeklyBar.close}, High ${weeklyBar.high}, Low ${weeklyBar.low}, Volume ${weeklyBar.volume}`)
+    
+    return weeklyBar
+  }
+
+  // Get weekly bar directly (combines fetching and computing)
+  static async getWeeklyBar(symbol: string): Promise<WeeklyBar | null> {
+    const dailyBars = await this.getLastFiveTradingDays(symbol)
+    if (dailyBars.length === 0) {
+      return null
+    }
+    
+    return this.computeWeeklyBar(symbol, dailyBars)
+  }
+
+  // Get multiple weekly bars
+  static async getMultipleWeeklyBars(symbols: string[]): Promise<WeeklyBar[]> {
+    const weeklyBars: WeeklyBar[] = []
+    
+    try {
+      const promises = symbols.map(async (symbol) => {
+        const weeklyBar = await this.getWeeklyBar(symbol)
+        return weeklyBar
+      })
+      
+      const results = await Promise.all(promises)
+      weeklyBars.push(...results.filter(Boolean) as WeeklyBar[])
+    } catch (error) {
+      console.error('Error fetching multiple weekly bars:', error)
+    }
+    
+    return weeklyBars
   }
 
   // Get financial data (market cap, P/E, etc.)

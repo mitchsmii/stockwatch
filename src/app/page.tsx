@@ -15,7 +15,7 @@ export default function Home() {
               <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
                 <TrendingUp className="w-5 h-5 text-white" />
               </div>
-              <span className="text-xl font-bold text-gray-900">StockWatch</span>
+              <span className="text-xl font-bold text-gray-900">IntrinArc</span>
             </div>
             <div className="flex items-center space-x-4">
               <Link href="/dashboard">
@@ -34,15 +34,15 @@ export default function Home() {
         <div className="max-w-7xl mx-auto text-center">
           <div className="mb-8">
             <Badge variant="secondary" className="mb-4">
-              🚀 Professional Stock Tracking Platform
+              🚀 Advanced Investment Analysis Platform
             </Badge>
             <h1 className="text-4xl sm:text-6xl font-bold text-gray-900 mb-6">
               Master Your
               <span className="text-blue-600"> Portfolio</span>
             </h1>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-8">
-              Advanced stock tracking with real-time pricing, valuation metrics, and market alerts. 
-              Make informed investment decisions with our comprehensive dashboard.
+              Advanced investment analysis with real-time pricing, intrinsic value calculations, and market insights. 
+              Make informed investment decisions with our comprehensive IntrinArc dashboard.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/dashboard">
@@ -65,10 +65,10 @@ export default function Home() {
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              Powerful Features for Smart Investing
+              Advanced Features for Intelligent Investing
             </h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Everything you need to track, analyze, and optimize your investment portfolio
+              Everything you need to analyze, track, and optimize your investment portfolio with IntrinArc
             </p>
           </div>
 
@@ -105,14 +105,14 @@ export default function Home() {
               </CardContent>
             </Card>
 
-            {/* Stock Universe */}
+            {/* Market Universe */}
             <Card className="border-l-4 border-l-green-500 hover:shadow-lg transition-shadow">
               <CardHeader>
                 <div className="flex items-center space-x-3">
                   <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
                     <BarChart3 className="w-5 h-5 text-green-600" />
                   </div>
-                  <CardTitle className="text-lg">Stock Universe</CardTitle>
+                  <CardTitle className="text-lg">Market Universe</CardTitle>
                 </div>
               </CardHeader>
               <CardContent>
@@ -199,7 +199,7 @@ export default function Home() {
             Ready to Transform Your Investing?
           </h2>
           <p className="text-xl text-blue-100 mb-8">
-            Join thousands of investors who trust StockWatch for their portfolio management
+            Join thousands of investors who trust IntrinArc for their portfolio management
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/dashboard">
@@ -225,17 +225,17 @@ export default function Home() {
                 <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
                   <TrendingUp className="w-5 h-5 text-white" />
                 </div>
-                <span className="text-xl font-bold">StockWatch</span>
+                <span className="text-xl font-bold">IntrinArc</span>
               </div>
               <p className="text-gray-400">
-                Professional stock tracking and portfolio management platform.
+                Advanced investment analysis and portfolio management platform.
               </p>
             </div>
             <div>
               <h3 className="font-semibold mb-4">Features</h3>
               <ul className="space-y-2 text-gray-400">
                 <li>Pricing & Valuation</li>
-                <li>Stock Universe</li>
+                <li>Market Universe</li>
                 <li>Market Alerts</li>
                 <li>Portfolio Tracking</li>
               </ul>
@@ -260,7 +260,7 @@ export default function Home() {
             </div>
           </div>
           <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-            <p>&copy; 2024 StockWatch. All rights reserved.</p>
+            <p>&copy; 2024 IntrinArc. All rights reserved.</p>
           </div>
         </div>
       </footer>
