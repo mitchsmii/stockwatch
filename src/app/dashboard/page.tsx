@@ -59,6 +59,7 @@ export default function Dashboard() {
         "oneDayChange": (Math.random() - 0.5) * 10,
         "oneWeekChange": (Math.random() - 0.5) * 15,
         "oneMonthChange": (Math.random() - 0.5) * 25,
+        "oneYearChange": (Math.random() - 0.5) * 40,
         "intrinsicValue": Math.random() * 250 + 150,
         "upsidePercent": (Math.random() - 0.5) * 20,
         "tenYearEstReturn": Math.random() * 30 + 10,
@@ -134,6 +135,10 @@ export default function Dashboard() {
     const monthQuotes = await refreshData(symbols, 'month')
     console.log('📊 month quotes received:', monthQuotes)
     
+    console.log('📈 Fetching year data...')
+    const yearQuotes = await refreshData(symbols, 'year')
+    console.log('📊 year quotes received:', yearQuotes)
+    
     const newQuotesByPeriod: Record<string, Array<{
       symbol: string
       open: number
@@ -145,7 +150,8 @@ export default function Dashboard() {
     }>> = {
       day: dayQuotes,
       week: weekQuotes,
-      month: monthQuotes
+      month: monthQuotes,
+      year: yearQuotes
     }
     
     setQuotesByPeriod(newQuotesByPeriod)
@@ -217,21 +223,25 @@ export default function Dashboard() {
     const dayQuote = quotesByPeriod.day.find(q => q.symbol === stock.ticker)
     const weekQuote = quotesByPeriod.week.find(q => q.symbol === stock.ticker)
     const monthQuote = quotesByPeriod.month.find(q => q.symbol === stock.ticker)
+    const yearQuote = quotesByPeriod.year.find(q => q.symbol === stock.ticker)
     const overview = companyOverviews[stock.ticker]
     
     if (dayQuote) {
       return {
         ...stock,
         price: dayQuote.close, // Use close price from min object
+
         oneDayChange: dayQuote.changePercent,
         oneWeekChange: weekQuote?.changePercent || stock.oneWeekChange, // Use real week data if available
         oneMonthChange: monthQuote?.changePercent || stock.oneMonthChange, // Use real month data if available
+        oneYearChange: yearQuote?.changePercent || stock.oneYearChange, // Use real year data if available
         marketCap: overview?.marketCap || stock.marketCap,
         volume: stock.volume, // Use original stock data for volume
         // Keep other fields from original stock data for now
       }
     }
     
+    // If no dayQuote, return original stock
     return stock
   }
 
@@ -314,10 +324,13 @@ export default function Dashboard() {
         <TabsContent value="pricing" className="space-y-6 w-full">
           <Card className="border-t-4 border-t-yellow-500">
             <CardHeader>
-              <CardTitle className="flex items-center gap-3 text-yellow-800 text-xl">
-                <div className="w-5 h-5 bg-yellow-500 rounded-full"></div>
-                Performance & Intrinsic Value
-              </CardTitle>
+              <div>
+                <CardTitle className="flex items-center gap-3 text-yellow-800 text-xl">
+                  <div className="w-5 h-5 bg-yellow-500 rounded-full"></div>
+                  Performance & Intrinsic Value
+                </CardTitle>
+                <p className="text-gray-400 text-sm mt-1">15 mins delayed</p>
+              </div>
             </CardHeader>
             <CardContent className="overflow-x-auto">
               <Table>
@@ -377,6 +390,14 @@ export default function Dashboard() {
                         onClick={() => handleSort("oneMonthChange")}
                       >
                         1M
+                      </button>
+                    </TableHead>
+                    <TableHead className="text-center w-12">
+                      <button 
+                        className="flex items-center justify-center gap-1 hover:text-blue-600"
+                        onClick={() => handleSort("oneYearChange")}
+                      >
+                        1Y
                       </button>
                     </TableHead>
                     <TableHead className="text-center w-16">
@@ -479,14 +500,22 @@ export default function Dashboard() {
                       >
                         {getRealStockData(stock).oneMonthChange >= 0 ? '+' : ''}{getRealStockData(stock).oneMonthChange.toFixed(2)}%
                       </TableCell>
+                      <TableCell 
+                        className="text-center font-medium py-1"
+                        style={{ backgroundColor: getColorForCustomRange(getRealStockData(stock).oneYearChange, -20, 0, 20) }}
+                      >
+                        {getRealStockData(stock).oneYearChange >= 0 ? '+' : ''}{getRealStockData(stock).oneYearChange.toFixed(2)}%
+                      </TableCell>
                       <TableCell className="text-center py-1">
                         ${stock.intrinsicValue.toFixed(2)}
                       </TableCell>
+                      
+                      {/* Intrinsic Value Percentage (+/- %) */}
                       <TableCell 
                         className="text-center font-medium py-1"
-                        style={{ backgroundColor: getColorForCustomRange(stock.upsidePercent, -20, 0, 20) }}
+                        style={{ backgroundColor: getColorForCustomRange(((stock.intrinsicValue / getRealStockData(stock).price) - 1) * 100, -10, -5, 15) }}
                       >
-                        {stock.upsidePercent >= 0 ? '+' : ''}{stock.upsidePercent.toFixed(2)}%
+                        {((stock.intrinsicValue / getRealStockData(stock).price) - 1) * 100 >= 0 ? '+' : ''}{(((stock.intrinsicValue / getRealStockData(stock).price) - 1) * 100).toFixed(2)}%
                       </TableCell>
                       <TableCell 
                         className="text-center font-medium py-1"
@@ -514,10 +543,13 @@ export default function Dashboard() {
         <TabsContent value="universe" className="space-y-6 w-full">
           <Card className="border-t-4 border-t-green-500">
             <CardHeader>
-              <CardTitle className="flex items-center gap-3 text-green-800 text-xl">
-                <div className="w-5 h-5 bg-green-500 rounded-full"></div>
-                Market Valuation
-              </CardTitle>
+              <div>
+                <CardTitle className="flex items-center gap-3 text-green-800 text-xl">
+                  <div className="w-5 h-5 bg-green-500 rounded-full"></div>
+                  Market Valuation
+                </CardTitle>
+                <p className="text-gray-400 text-sm mt-1">15 mins delayed</p>
+              </div>
             </CardHeader>
             <CardContent className="overflow-x-auto">
               <Table>
@@ -657,10 +689,10 @@ export default function Dashboard() {
                         {stock.peRatio.toFixed(1)}
                       </TableCell>
                       <TableCell className="text-center py-1">
-                        ${stock.fiftyTwoWeekHigh.toFixed(2)}
+                        ${(quotesByPeriod.year?.find(q => q.symbol === stock.ticker) as any)?.high?.toFixed(2) || 'N/A'}
                       </TableCell>
                       <TableCell className="text-center py-1">
-                        ${stock.fiftyTwoWeekLow.toFixed(2)}
+                      ${(quotesByPeriod.year?.find(q => q.symbol === stock.ticker) as any)?.low?.toFixed(2) || 'N/A'}
                       </TableCell>
                       <TableCell className="text-center py-1">
                         {stock.dividendYield.toFixed(1)}%
@@ -685,10 +717,13 @@ export default function Dashboard() {
         <TabsContent value="alerts" className="space-y-6 w-full">
           <Card className="border-t-4 border-t-orange-500">
             <CardHeader>
-              <CardTitle className="flex items-center gap-3 text-orange-800 text-xl">
-                <div className="w-5 h-5 bg-orange-500 rounded-full"></div>
-                Research & Analysis
-              </CardTitle>
+              <div>
+                <CardTitle className="flex items-center gap-3 text-orange-800 text-xl">
+                  <div className="w-5 h-5 bg-orange-500 rounded-full"></div>
+                  Research & Analysis
+                </CardTitle>
+                <p className="text-gray-400 text-sm mt-1">15 mins delayed</p>
+              </div>
             </CardHeader>
             <CardContent className="overflow-x-auto">
               <Table>

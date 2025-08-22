@@ -87,6 +87,10 @@ export function usePolygonData(): UsePolygonDataReturn {
         // Use the new exact monthly calculation function
         console.log('📅 Fetching monthly data using exact 1-month calculation...')
         newQuotes = await PolygonApi.getMultipleMonthlyQuotesExact(symbols)
+      } else if (dataRange === 'year') {
+        // Use the yearly calculation function
+        console.log('📅 Fetching yearly data using exact 1-year calculation...')
+        newQuotes = await PolygonApi.getMultipleYearlyQuotes(symbols)
       } else {
         newQuotes = await PolygonApi.getMultipleQuotes(symbols, dataRange)
       }

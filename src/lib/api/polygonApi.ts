@@ -5,6 +5,8 @@ export interface StockQuote {
   symbol: string
   open: number
   close: number
+  high?: number
+  low?: number
   timestamp: number
   change: number
   changePercent: number
@@ -14,7 +16,7 @@ export interface StockQuote {
 export interface DailyBar {
   date: string
   open: number
-  high: number
+  high?: number
   low: number
   close: number
   volume: number
@@ -25,7 +27,7 @@ export interface DailyBar {
 export interface WeeklyBar {
   symbol: string
   open: number
-  high: number
+  high?: number
   low: number
   close: number
   volume: number
@@ -236,14 +238,14 @@ export class PolygonApi {
     const last = results[results.length - 1]
     
     // Calculate change from exactly 1 month ago to today
-    const change = last.c - first.o
-    const changePercent = ((last.c - first.o) / first.o) * 100
+    const change = last.c - first.c
+    const changePercent = ((last.c - first.c) / first.c) * 100
     
-    console.log(`${symbol} : 📊 Monthly exact: Open  ${first.o} (${fromDate}), Close ${last.c} (${toDate})`)
+    console.log(`${symbol} : 📊 Monthly exact: Close ${first.c} (${fromDate}), Close ${last.c} (${toDate})`)
 
     return {
       symbol: symbol.toUpperCase(),
-      open: first.o || 0,
+      open: first.c || 0, // Using close price for "from" date
       close: last.c || 0,
       timestamp: last.t || Date.now(),
       change: change,
@@ -274,14 +276,14 @@ export class PolygonApi {
     const last = results[results.length - 1]
     
     // Calculate change from 30 days ago to today
-    const change = last.c - first.o
-    const changePercent = ((last.c - first.o) / first.o) * 100
+    const change = last.c - first.c
+    const changePercent = ((last.c - first.c) / first.c) * 100
     
-    console.log(`📊 Monthly: Open ${first.c}, Close ${last.c}`)
+    console.log(`📊 Monthly: Close ${first.c}, Close ${last.c}`)
 
     return {
       symbol: symbol.toUpperCase(),
-      open: first.o || 0,
+      open: first.c || 0, // Using close price for "from" date
       close: last.c || 0,
       timestamp: last.t || Date.now(),
       change: change,
@@ -389,8 +391,8 @@ export class PolygonApi {
       symbol: symbol.toUpperCase(),
       open: firstDay.open,
       close: lastDay.close,
-      high: Math.max(...sortedBars.map(bar => bar.high)),
-      low: Math.min(...sortedBars.map(bar => bar.low)),
+      high: Math.max(...sortedBars.map(bar => bar.high || 0)),
+      low: Math.min(...sortedBars.map(bar => bar.low || 0)),
       volume: sortedBars.reduce((sum, bar) => sum + bar.volume, 0),
       startDate: firstDay.date,
       endDate: lastDay.date,
@@ -460,6 +462,78 @@ export class PolygonApi {
       volume: 0,
       price: 0
     }
+  }
+
+  // Get yearly stock quote with exact 1-year calculation
+  static async getYearlyQuote(symbol: string): Promise<StockQuote | null> {
+    const now = new Date()
+    
+    // Calculate exactly 1 year ago from today (by calendar date, not by 365 days)
+    const oneYearAgo = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate())
+    
+    // Calculate the exact number of days between the two dates
+    const timeDiff = now.getTime() - oneYearAgo.getTime()
+    const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24))
+    
+    const fromDate = oneYearAgo.toISOString().split('T')[0]
+    const toDate = now.toISOString().split('T')[0]
+    
+    console.log(`📅 Yearly exact calculation: ${fromDate} to ${toDate} (${daysDiff} days)`)
+    console.log(`📊 Today: ${now.toDateString()}, One year ago: ${oneYearAgo.toDateString()}`)
+    
+    // Use the exact day span for the API request
+    const endpoint = `/v2/aggs/ticker/${symbol}/range/1/day/${fromDate}/${toDate}?adjusted=true&sort=asc&limit=500&apiKey=${POLYGON_API_KEY}`
+    const data = await this.makeRequest(endpoint)
+    
+    if (!data || !data.results || data.results.length === 0) {
+      console.log(`❌ No yearly data returned for ${symbol}`)
+      return null
+    }
+
+    const results = data.results
+    const first = results[0]
+    const last = results[results.length - 1]
+    
+    // Calculate change from exactly 1 year ago to today
+    const change = last.c - first.c
+    const changePercent = ((last.c - first.c) / first.c) * 100
+    
+    // Find the highest high value from all daily bars in the year
+    const yearlyHigh = Math.max(...results.map((bar: any) => bar.h || 0))
+    const yearlyLow = Math.min(...results.map((bar: any) => bar.l || 0))
+    
+    console.log(`${symbol} : 📊 Yearly exact: Close ${first.c} (${fromDate}), Close ${last.c} (${toDate}), Yearly High: ${yearlyHigh}`)
+
+    return {
+      symbol: symbol.toUpperCase(),
+      open: first.c || 0, // Using close price for "from" date
+      close: last.c || 0,
+      high: yearlyHigh,
+      low: yearlyLow,
+      timestamp: last.t || Date.now(),
+      change: change,
+      changePercent: changePercent,
+      dataRange: 'year'
+    }
+  }
+
+  // Get multiple yearly quotes
+  static async getMultipleYearlyQuotes(symbols: string[]): Promise<StockQuote[]> {
+    const quotes: StockQuote[] = []
+    
+    try {
+      const promises = symbols.map(async (symbol) => {
+        const quote = await this.getYearlyQuote(symbol)
+        return quote
+      })
+      
+      const results = await Promise.all(promises)
+      quotes.push(...results.filter(Boolean) as StockQuote[])
+    } catch (error) {
+      console.error('Error fetching multiple yearly quotes:', error)
+    }
+    
+    return quotes
   }
 
   // Get historical data for calculating returns

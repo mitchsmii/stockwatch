@@ -20,6 +20,7 @@ interface StockDetailDrawerProps {
     oneDayChange: number
     oneWeekChange: number
     oneMonthChange: number
+    oneYearChange: number
     pe5y?: number
     peLtm?: number
     peFwd?: number
@@ -131,7 +132,6 @@ export function StockDetailDrawer({ stock, open, onOpenChange }: StockDetailDraw
                         {(stock.oneMonthChange) >= 0 ? `+${(stock.oneMonthChange).toFixed(2)}%` : `(${Math.abs(stock.oneMonthChange).toFixed(2)}%)`}
                       </p>
                     </div>
-
                   </div>
                 </div>
 
