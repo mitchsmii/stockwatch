@@ -499,8 +499,8 @@ export class PolygonApi {
     const changePercent = ((last.c - first.c) / first.c) * 100
     
     // Find the highest high value from all daily bars in the year
-    const yearlyHigh = Math.max(...results.map((bar: any) => bar.h || 0))
-    const yearlyLow = Math.min(...results.map((bar: any) => bar.l || 0))
+    const yearlyHigh = Math.max(...results.map((bar: {h?: number}) => bar.h || 0))
+    const yearlyLow = Math.max(...results.map((bar: {l?: number}) => bar.l || 0))
     
     console.log(`${symbol} : 📊 Yearly exact: Close ${first.c} (${fromDate}), Close ${last.c} (${toDate}), Yearly High: ${yearlyHigh}`)
 

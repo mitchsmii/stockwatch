@@ -689,10 +689,10 @@ export default function Dashboard() {
                         {stock.peRatio.toFixed(1)}
                       </TableCell>
                       <TableCell className="text-center py-1">
-                        ${(quotesByPeriod.year?.find(q => q.symbol === stock.ticker) as any)?.high?.toFixed(2) || 'N/A'}
+                        ${(quotesByPeriod.year?.find(q => q.symbol === stock.ticker) as { high?: number })?.high?.toFixed(2) || 'N/A'}
                       </TableCell>
                       <TableCell className="text-center py-1">
-                      ${(quotesByPeriod.year?.find(q => q.symbol === stock.ticker) as any)?.low?.toFixed(2) || 'N/A'}
+                      ${(quotesByPeriod.year?.find(q => q.symbol === stock.ticker) as { low?: number })?.low?.toFixed(2) || 'N/A'}
                       </TableCell>
                       <TableCell className="text-center py-1">
                         {stock.dividendYield.toFixed(1)}%
