@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/drawer"
 import { TrendingUp, DollarSign, BarChart3 } from "lucide-react"
 import { getColorForCustomRange } from "@/lib/utils/getColorForChange"
+import { useState, useMemo, useCallback } from "react"
 
 interface StockDetailDrawerProps {
   stock: {
@@ -49,11 +50,102 @@ interface StockDetailDrawerProps {
     valueRating?: number
     tenYearPriceSameShares?: number
   } | null
+  quotesByPeriod: Record<string, Array<{
+    symbol: string
+    open?: number
+    close?: number
+    timestamp: number
+    change?: number
+    changePercent?: number
+    dataRange?: string
+    frequency?: string
+    cashAmount?: number
+    high?: number
+    low?: number
+    highDate?: string
+  } | null>>
   open: boolean
   onOpenChange: (open: boolean) => void
+  onSaveMetrics?: (ticker: string, metrics: Record<string, number>) => void
 }
 
-export function StockDetailDrawer({ stock, open, onOpenChange }: StockDetailDrawerProps) {
+export function StockDetailDrawer({ stock, quotesByPeriod, open, onOpenChange, onSaveMetrics }: StockDetailDrawerProps) {
+  // Move all hooks to the top level, before any early returns
+  const [metrics, setMetrics] = useState({
+    busModel: stock?.busModel || 0,
+    profit: stock?.profit || 0,
+    balSheet: stock?.balSheet || 0,
+    moat: stock?.moat || 0,
+    growth: stock?.growth || 0,
+    management: stock?.management || 0,
+    histReturn: stock?.histReturn || 0,
+  })
+
+  // Memoize real-time data to avoid recalculating
+  const realTimeData = useMemo(() => {
+    if (!stock) return null
+    
+    const dayQuote = quotesByPeriod.day?.find(q => q?.symbol === stock.ticker)
+    const weekQuote = quotesByPeriod.week?.find(q => q?.symbol === stock.ticker)
+    const monthQuote = quotesByPeriod.month?.find(q => q?.symbol === stock.ticker)
+    const yearQuote = quotesByPeriod.year?.find(q => q?.symbol === stock.ticker)
+    
+    if (dayQuote) {
+      return {
+        ...stock,
+        price: dayQuote.close,
+        oneDayChange: dayQuote.changePercent,
+        oneWeekChange: weekQuote?.changePercent || stock.oneWeekChange,
+        oneMonthChange: monthQuote?.changePercent || stock.oneMonthChange,
+        oneYearChange: yearQuote?.changePercent || stock.oneYearChange,
+        week52High: yearQuote?.high || stock.week52High,
+        week52Low: yearQuote?.low || stock.week52Low,
+      }
+    }
+    
+    return stock
+  }, [stock, quotesByPeriod])
+
+  // Handle input changes
+  const handleInputChange = useCallback((field: string, value: string) => {
+    const numValue = parseFloat(value) || 0
+    if (numValue >= 0 && numValue <= 10) {
+      setMetrics(prev => ({
+        ...prev,
+        [field]: numValue
+      }))
+    }
+  }, [])
+
+  // Handle form submission
+  const handleSave = useCallback(() => {
+    if (onSaveMetrics && stock) {
+      onSaveMetrics(stock.ticker, metrics)
+    }
+  }, [onSaveMetrics, stock, metrics])
+
+  // Handle reset
+  const handleReset = useCallback(() => {
+    if (stock) {
+      setMetrics({
+        busModel: stock.busModel || 0,
+        profit: stock.profit || 0,
+        balSheet: stock.balSheet || 0,
+        moat: stock.moat || 0,
+        growth: stock.growth || 0,
+        management: stock.management || 0,
+        histReturn: stock.histReturn || 0,
+      })
+    }
+  }, [stock])
+
+  // Calculate overall rating
+  const overallRating = useMemo(() => {
+    const values = Object.values(metrics).filter(v => v > 0)
+    return values.length > 0 ? (values.reduce((a, b) => a + b, 0) / values.length).toFixed(1) : 'N/A'
+  }, [metrics])
+
+  // Early return after all hooks
   if (!stock) return null
 
   return (
@@ -75,7 +167,7 @@ export function StockDetailDrawer({ stock, open, onOpenChange }: StockDetailDraw
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
                     <p className="text-sm text-gray-500">Current Price</p>
-                    <p className="text-2xl font-bold">${stock.price.toFixed(2)}</p>
+                    <p className="text-2xl font-bold">${realTimeData?.price?.toFixed(2) || stock.price.toFixed(2)}</p>
                   </div>
                   <div className="space-y-1">
                     <p className="text-sm text-gray-500">Market Cap</p>
@@ -95,13 +187,13 @@ export function StockDetailDrawer({ stock, open, onOpenChange }: StockDetailDraw
                       <p 
                         className="text-sm font-medium"
                         style={{
-                          backgroundColor: getColorForCustomRange(stock.oneDayChange / 100, -0.02, 0, 0.02),
+                          backgroundColor: getColorForCustomRange(realTimeData?.oneDayChange || stock.oneDayChange, -2, 0, 2),
                           color: '#111',
                           padding: '2px 6px',
                           borderRadius: '4px',
                         }}
                       >
-                        {(stock.oneDayChange) >= 0 ? `+${(stock.oneDayChange).toFixed(2)}%` : `(${Math.abs(stock.oneDayChange).toFixed(2)}%)`}
+                        {(realTimeData?.oneDayChange || stock.oneDayChange) >= 0 ? `+${(realTimeData?.oneDayChange || stock.oneDayChange).toFixed(2)}%` : `(${Math.abs(realTimeData?.oneDayChange || stock.oneDayChange).toFixed(2)}%)`}
                       </p>
                     </div>
                     <div className="space-y-1">
@@ -109,13 +201,13 @@ export function StockDetailDrawer({ stock, open, onOpenChange }: StockDetailDraw
                       <p 
                         className="text-sm font-medium"
                         style={{
-                          backgroundColor: getColorForCustomRange(stock.oneWeekChange / 100, -0.05, 0, 0.05),
+                          backgroundColor: getColorForCustomRange(realTimeData?.oneWeekChange || stock.oneWeekChange, -5, 0, 5),
                           color: '#111',
                           padding: '2px 6px',
                           borderRadius: '4px',
                         }}
                       >
-                        {(stock.oneWeekChange) >= 0 ? `+${(stock.oneWeekChange).toFixed(2)}%` : `(${Math.abs(stock.oneWeekChange).toFixed(2)}%)`}
+                        {(realTimeData?.oneWeekChange || stock.oneWeekChange) >= 0 ? `+${(realTimeData?.oneWeekChange || stock.oneWeekChange).toFixed(2)}%` : `(${Math.abs(realTimeData?.oneWeekChange || stock.oneWeekChange).toFixed(2)}%)`}
                       </p>
                     </div>
                     <div className="space-y-1">
@@ -123,13 +215,27 @@ export function StockDetailDrawer({ stock, open, onOpenChange }: StockDetailDraw
                       <p 
                         className="text-sm font-medium"
                         style={{
-                          backgroundColor: getColorForCustomRange(stock.oneMonthChange / 100, -0.05, 0, 0.05),
+                          backgroundColor: getColorForCustomRange(realTimeData?.oneMonthChange || stock.oneMonthChange, -5, 0, 5),
                           color: '#111',
                           padding: '2px 6px',
                           borderRadius: '4px',
                         }}
                       >
-                        {(stock.oneMonthChange) >= 0 ? `+${(stock.oneMonthChange).toFixed(2)}%` : `(${Math.abs(stock.oneMonthChange).toFixed(2)}%)`}
+                        {(realTimeData?.oneMonthChange || stock.oneMonthChange) >= 0 ? `+${(realTimeData?.oneMonthChange || stock.oneMonthChange).toFixed(2)}%` : `(${Math.abs(realTimeData?.oneMonthChange || stock.oneMonthChange).toFixed(2)}%)`}
+                      </p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-xs text-gray-500">1 Year</p>
+                      <p 
+                        className="text-sm font-medium"
+                        style={{
+                          backgroundColor: getColorForCustomRange(realTimeData?.oneYearChange || stock.oneYearChange, -15, 0, 15),
+                          color: '#111',
+                          padding: '2px 6px',
+                          borderRadius: '4px',
+                        }}
+                      >
+                        {(realTimeData?.oneYearChange || stock.oneYearChange) >= 0 ? `+${(realTimeData?.oneYearChange || stock.oneYearChange).toFixed(2)}%` : `(${Math.abs(realTimeData?.oneYearChange || stock.oneYearChange).toFixed(2)}%)`}
                       </p>
                     </div>
                   </div>
@@ -167,11 +273,11 @@ export function StockDetailDrawer({ stock, open, onOpenChange }: StockDetailDraw
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1">
                       <p className="text-xs text-gray-500">Low</p>
-                      <p className="text-sm font-medium">${stock.week52Low?.toFixed(2) || 'N/A'}</p>
+                      <p className="text-sm font-medium">${realTimeData?.week52Low?.toFixed(2) || stock.week52Low?.toFixed(2) || 'N/A'}</p>
                     </div>
                     <div className="space-y-1">
                       <p className="text-xs text-gray-500">High</p>
-                      <p className="text-sm font-medium">${stock.week52High?.toFixed(2) || 'N/A'}</p>
+                      <p className="text-sm font-medium">${realTimeData?.week52High?.toFixed(2) || stock.week52High?.toFixed(2) || 'N/A'}</p>
                     </div>
                   </div>
                   <div className="space-y-1">
@@ -254,9 +360,12 @@ export function StockDetailDrawer({ stock, open, onOpenChange }: StockDetailDraw
                       min="1"
                       max="10"
                       step="0.1"
-                      defaultValue={stock.busModel || ''}
+                      value={metrics.busModel || ''}
+                      onChange={(e) => handleInputChange('busModel', e.target.value)}
                       className="w-full"
+                      aria-describedby="busModel-help"
                     />
+                    <p id="busModel-help" className="text-xs text-gray-500">Rate the business model strength from 1 (weak) to 10 (excellent)</p>
                   </div>
 
                   <div className="space-y-2">
@@ -267,9 +376,12 @@ export function StockDetailDrawer({ stock, open, onOpenChange }: StockDetailDraw
                       min="1"
                       max="10"
                       step="0.1"
-                      defaultValue={stock.profit || ''}
+                      value={metrics.profit || ''}
+                      onChange={(e) => handleInputChange('profit', e.target.value)}
                       className="w-full"
+                      aria-describedby="profit-help"
                     />
+                    <p id="profit-help" className="text-xs text-gray-500">Rate the profitability from 1 (poor) to 10 (excellent)</p>
                   </div>
 
                   <div className="space-y-2">
@@ -280,9 +392,12 @@ export function StockDetailDrawer({ stock, open, onOpenChange }: StockDetailDraw
                       min="1"
                       max="10"
                       step="0.1"
-                      defaultValue={stock.balSheet || ''}
+                      value={metrics.balSheet || ''}
+                      onChange={(e) => handleInputChange('balSheet', e.target.value)}
                       className="w-full"
+                      aria-describedby="balSheet-help"
                     />
+                    <p id="balSheet-help" className="text-xs text-gray-500">Rate the balance sheet strength from 1 (weak) to 10 (excellent)</p>
                   </div>
 
                   <div className="space-y-2">
@@ -293,9 +408,12 @@ export function StockDetailDrawer({ stock, open, onOpenChange }: StockDetailDraw
                       min="1"
                       max="10"
                       step="0.1"
-                      defaultValue={stock.moat || ''}
+                      value={metrics.moat || ''}
+                      onChange={(e) => handleInputChange('moat', e.target.value)}
                       className="w-full"
+                      aria-describedby="moat-help"
                     />
+                    <p id="moat-help" className="text-xs text-gray-500">Rate the competitive moat from 1 (none) to 10 (very strong)</p>
                   </div>
 
                   <div className="space-y-2">
@@ -306,9 +424,12 @@ export function StockDetailDrawer({ stock, open, onOpenChange }: StockDetailDraw
                       min="1"
                       max="10"
                       step="0.1"
-                      defaultValue={stock.growth || ''}
+                      value={metrics.growth || ''}
+                      onChange={(e) => handleInputChange('growth', e.target.value)}
                       className="w-full"
+                      aria-describedby="growth-help"
                     />
+                    <p id="growth-help" className="text-xs text-gray-500">Rate the growth potential from 1 (stagnant) to 10 (high growth)</p>
                   </div>
 
                   <div className="space-y-2">
@@ -319,9 +440,12 @@ export function StockDetailDrawer({ stock, open, onOpenChange }: StockDetailDraw
                       min="1"
                       max="10"
                       step="0.1"
-                      defaultValue={stock.management || ''}
+                      value={metrics.management || ''}
+                      onChange={(e) => handleInputChange('management', e.target.value)}
                       className="w-full"
+                      aria-describedby="management-help"
                     />
+                    <p id="management-help" className="text-xs text-gray-500">Rate the management quality from 1 (poor) to 10 (excellent)</p>
                   </div>
 
                   <div className="space-y-2">
@@ -332,15 +456,38 @@ export function StockDetailDrawer({ stock, open, onOpenChange }: StockDetailDraw
                       min="1"
                       max="10"
                       step="0.1"
-                      defaultValue={stock.histReturn || ''}
+                      value={metrics.histReturn || ''}
+                      onChange={(e) => handleInputChange('histReturn', e.target.value)}
                       className="w-full"
+                      aria-describedby="histReturn-help"
                     />
+                    <p id="histReturn-help" className="text-xs text-gray-500">Rate the historical return performance from 1 (poor) to 10 (excellent)</p>
+                  </div>
+
+                  {/* Overall Rating Display */}
+                  <div className="pt-4 border-t">
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium text-gray-700">Overall Rating:</span>
+                      <span className="text-lg font-bold text-blue-600">{overallRating}</span>
+                    </div>
                   </div>
                 </div>
 
                 <div className="flex gap-2 pt-4">
-                  <Button className="flex-1">Save Changes</Button>
-                  <Button variant="outline" className="flex-1">Reset</Button>
+                  <Button 
+                    onClick={handleSave}
+                    className="flex-1"
+                    disabled={!onSaveMetrics}
+                  >
+                    Save Changes
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={handleReset}
+                    className="flex-1"
+                  >
+                    Reset
+                  </Button>
                 </div>
               </div>
             </div>

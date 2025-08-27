@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/populate-stocks",
+      "schedule": "30 13 * * 1-5"
+    }
+  ]
+} 

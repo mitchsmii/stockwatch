@@ -536,6 +536,28 @@ export class PolygonApi {
     return quotes
   }
 
+  // Get dividend yield
+  static async getDividendYield(symbol: string): Promise<{ frequency: string, cashAmount: number } | null> {
+    const endpoint = `/v3/reference/dividends?ticker=${symbol}&order=desc&limit=1&sort=ex_dividend_date&apiKey=${POLYGON_API_KEY}`
+    const data = await this.makeRequest(endpoint)
+    
+    // Check if we have data and results
+    if (!data || !data.results || data.results.length === 0) {
+      return null
+    }
+    
+    // Check if the first result has the required properties
+    const firstResult = data.results[0]
+    if (!firstResult || !firstResult.frequency || !firstResult.cash_amount) {
+      return null
+    }
+    
+    return {
+      frequency: firstResult.frequency,
+      cashAmount: firstResult.cash_amount,
+    }
+  }
+
   // Get historical data for calculating returns
   static async getHistoricalData(symbol: string, days: number = 365): Promise<{
     results?: Array<{
