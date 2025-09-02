@@ -20,26 +20,48 @@ async function fetchHistoricalPrice(symbol, daysAgo) {
     const targetDate = new Date(today.getTime() - (daysAgo * 24 * 60 * 60 * 1000))
     const dateStr = targetDate.toISOString().split('T')[0]
     
-    // Use the aggregates endpoint to get historical price
-    const url = `https://api.polygon.io/v2/aggs/ticker/${symbol}/range/1/day/${dateStr}/${dateStr}?adjusted=true&sort=desc&limit=1&apiKey=${polygonApiKey}`
-    
     console.log(`📅 Fetching price from ${daysAgo} days ago (${dateStr})...`)
     
-    const response = await fetch(url)
-    if (!response.ok) {
-      console.log(`⚠️  No data for ${daysAgo} days ago, skipping...`)
-      return null
+    // First attempt: try exact date
+    let url = `https://api.polygon.io/v2/aggs/ticker/${symbol}/range/1/day/${dateStr}/${dateStr}?adjusted=true&sort=desc&limit=1&apiKey=${polygonApiKey}`
+    
+    let response = await fetch(url)
+    if (response.ok) {
+      const data = await response.json()
+      if (data.results && data.results.length > 0) {
+        const price = data.results[0].c
+        console.log(`✅ Exact date found: $${price} on ${dateStr}`)
+        return price
+      }
     }
     
-    const data = await response.json()
-    if (!data.results || data.results.length === 0) {
-      console.log(`⚠️  No results for ${daysAgo} days ago, skipping...`)
-      return null
+    // Second attempt: search backwards to find most recent available data
+    console.log(`🔍 No exact date found, searching backwards to find most recent data...`)
+    
+    // Search in a 5-day window around the target date
+    const startDate = new Date(targetDate.getTime() - (5 * 24 * 60 * 60 * 1000))
+    const endDate = targetDate
+    
+    const startStr = startDate.toISOString().split('T')[0]
+    const endStr = endDate.toISOString().split('T')[0]
+    
+    url = `https://api.polygon.io/v2/aggs/ticker/${symbol}/range/1/day/${startStr}/${endStr}?adjusted=true&sort=desc&limit=10&apiKey=${polygonApiKey}`
+    response = await fetch(url)
+    
+    if (response.ok) {
+      const data = await response.json()
+      if (data.results && data.results.length > 0) {
+        // Get the most recent available data (closest to target date but earlier)
+        const closestResult = data.results[0]
+        const price = closestResult.c
+        const resultDate = new Date(closestResult.t).toISOString().split('T')[0]
+        console.log(`✅ Found most recent available data: $${price} on ${resultDate}`)
+        return price
+      }
     }
     
-    const price = data.results[0].c // Close price
-    console.log(`✅ Price ${daysAgo} days ago: $${price}`)
-    return price
+    console.log(`⚠️  No data found around ${daysAgo} days ago`)
+    return null
     
   } catch (error) {
     console.log(`⚠️  Error fetching ${daysAgo} days ago: ${error.message}`)
