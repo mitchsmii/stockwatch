@@ -1,7 +1,12 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
+// Creates a function that checks for basic authentication
+// This is used to protect the dashboard from unauthorized access
+// The NextRequest is used to get the request from the client
+// The NextResponse is used to send the response to the client
 export function middleware(request: NextRequest) {
+  
   // Get the authorization header
   const authHeader = request.headers.get('authorization')
   

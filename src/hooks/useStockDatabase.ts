@@ -64,8 +64,13 @@ export function useStockDatabase(): UseStockDatabaseReturn {
 
       setStockData(latestData)
     } catch (err) {
-      setError(`Failed to fetch data: ${err}`)
-      console.error('Database fetch error:', err)
+      const errorMessage = err instanceof Error ? err.message : String(err)
+      setError(`Database fetch error: ${errorMessage}`)
+      console.error('Database fetch error:', {
+        message: errorMessage,
+        error: err,
+        symbols: symbols
+      })
     } finally {
       setLoading(false)
     }

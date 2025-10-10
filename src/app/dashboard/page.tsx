@@ -7,12 +7,12 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Plus, X, Check } from "lucide-react"
+import { Plus, X, Check, Wifi, WifiOff } from "lucide-react"
 import { getColorForCustomRange, getColorForCustomRangeInverted } from "@/lib/utils/getColorForChange"
 import stocksData from "@/data/stocks.json"
 import { StockDetailDrawer } from "@/components/ui/stock-detail-drawer"
 import { useStockDatabase } from "@/hooks/useStockDatabase"
-import { PolygonRefreshButton } from "@/components/ui/polygon-refresh-button"
+import { usePolygonWebSocket } from "@/hooks/usePolygonWebSocket"
 
 
 export default function Dashboard() {
@@ -33,8 +33,11 @@ export default function Dashboard() {
   // Use imported stock data
   const [stocks, setStocks] = useState(stocksData)
 
-  // Replace usePolygonData with useStockDatabase
+  // Fetch stock data from Supabase database
   const { stockData, loading, error, refreshData } = useStockDatabase()
+  
+  // Real-time WebSocket price updates
+  const { prices: livePrices, connected: wsConnected, error: wsError, subscribe, unsubscribe } = usePolygonWebSocket()
   
   // Load initial data from database when component mounts
   useEffect(() => {
@@ -43,6 +46,21 @@ export default function Dashboard() {
       refreshData(symbols)
     }
   }, [stocks, refreshData])
+  
+  // Subscribe to WebSocket updates for all stocks
+  useEffect(() => {
+    if (stocks.length > 0) {
+      const symbols = stocks.map(stock => stock.ticker)
+      console.log('📡 Subscribing to real-time updates for:', symbols)
+      subscribe(symbols)
+      
+      // Cleanup: unsubscribe when component unmounts or stocks change
+      return () => {
+        console.log('📡 Unsubscribing from:', symbols)
+        unsubscribe(symbols)
+      }
+    }
+  }, [stocks, subscribe, unsubscribe])
   
   // Store quotes by time period
   const [quotesByPeriod, setQuotesByPeriod] = useState<Record<string, Array<{
@@ -137,26 +155,6 @@ export default function Dashboard() {
     setEditMode(false)
   }
 
-  const handleRefreshData = async () => {
-    const symbols = stocks.map(stock => stock.ticker)
-    console.log('🔄 Refreshing data for symbols:', symbols)
-    
-    // Use the new database hook - this will fetch all data at once
-    await refreshData(symbols)
-    
-    console.log('📊 Data refreshed from database')
-    
-    // TODO: When database is fully populated, we can remove the quotesByPeriod logic
-    // For now, keep the existing structure but it will be empty
-    setQuotesByPeriod(prev => ({
-      ...prev,
-      day: [],
-      week: [],
-      month: [],
-      year: [],
-      dividend: []
-    }))
-  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -273,37 +271,79 @@ export default function Dashboard() {
     return { min, max, median }
   }
 
-  // Helper function to get real data from database
+  // Helper function to get real data from database + live WebSocket updates
   const getRealStockData = (stock: typeof stocksData[0]) => {
-    // Try to get data from the new database first
+    // Try to get data from the database first
     const dbData = stockData[stock.ticker]
     
+    // Check if we have live WebSocket price for this stock
+    const livePrice = livePrices[stock.ticker]
+    
+    // If WebSocket isn't connected yet, show loading state
+    if (!wsConnected) {
+      return {
+        ...stock,
+        price: "Loading...",
+        oneDayChange: 0,
+        oneWeekChange: 0,
+        oneMonthChange: 0,
+        oneYearChange: 0,
+        // Keep database data for other fields if available
+        marketCap: dbData?.market_cap || stock.marketCap,
+        peRatio: dbData?.pe_ratio || stock.peRatio,
+        dividendYield: dbData?.dividend_yield || stock.dividendYield,
+        fiftyTwoWeekHigh: dbData?.fifty_two_week_high || stock.fiftyTwoWeekHigh,
+        fiftyTwoWeekLow: dbData?.fifty_two_week_low || stock.fiftyTwoWeekLow,
+        tenYearEstReturn: dbData?.ten_year_est_return || stock.tenYearEstReturn,
+        // Keep other fields from original stock data
+        volume: stock.volume,
+        beta: stock.beta,
+        intrinsicValue: stock.intrinsicValue,
+        upsidePercent: stock.upsidePercent,
+        buyPrice: stock.buyPrice,
+        buyUpsidePercent: stock.buyUpsidePercent,
+        overallRating: stock.overallRating,
+        qualityRating: stock.qualityRating,
+        valueRating: stock.valueRating,
+      }
+    }
+    
+    // Debug: Log what we have for this stock
+    console.log(`🔍 ${stock.ticker} data:`, {
+      dbData: !!dbData,
+      livePrice: !!livePrice,
+      livePriceValue: livePrice?.price,
+      allLivePrices: Object.keys(livePrices)
+    })
+    
     if (dbData) {
-      // Calculate percentage changes from stored prices
-      const oneDayChange = dbData.price_yesterday && dbData.current_price ? 
-        ((dbData.current_price - dbData.price_yesterday) / dbData.price_yesterday) * 100 : 0
+      // PRICE COLUMN: ONLY use WebSocket price, no Supabase fallback
+      const currentPrice = livePrice?.price || "No Data"
       
-      const oneWeekChange = dbData.price_one_week_ago && dbData.current_price ? 
-        ((dbData.current_price - dbData.price_one_week_ago) / dbData.price_one_week_ago) * 100 : 0
-      
-      const oneMonthChange = dbData.price_one_month_ago && dbData.current_price ? 
-        ((dbData.current_price - dbData.price_one_month_ago) / dbData.price_one_month_ago) * 100 : 0
-      
-      const oneYearChange = dbData.price_one_year_ago && dbData.current_price ? 
-        ((dbData.current_price - dbData.price_one_year_ago) / dbData.price_one_year_ago) * 100 : 0
-      
-      // Debug logging for 52-week data
-      console.log(`🔍 Debug for ${stock.ticker}:`, {
-        dbData: dbData,
-        fifty_two_week_high: dbData.fifty_two_week_high,
-        fifty_two_week_low: dbData.fifty_two_week_low,
-        originalHigh: stock.fiftyTwoWeekHigh,
-        originalLow: stock.fiftyTwoWeekLow
+      // Debug: Show what price we're actually using
+      console.log(`💰 ${stock.ticker} final price:`, {
+        livePrice: livePrice?.price,
+        finalPrice: currentPrice,
+        source: livePrice?.price ? 'WebSocket' : 'No Data'
       })
+      
+      // Calculate percentage changes from stored historical prices
+      // Note: We use database historical prices, but current price from WebSocket (most up-to-date)
+      const oneDayChange = dbData.price_yesterday && currentPrice && currentPrice !== "No Data" ? 
+        ((currentPrice - dbData.price_yesterday) / dbData.price_yesterday) * 100 : 0
+      
+      const oneWeekChange = dbData.price_one_week_ago && currentPrice && currentPrice !== "No Data" ? 
+        ((currentPrice - dbData.price_one_week_ago) / dbData.price_one_week_ago) * 100 : 0
+      
+      const oneMonthChange = dbData.price_one_month_ago && currentPrice && currentPrice !== "No Data" ? 
+        ((currentPrice - dbData.price_one_month_ago) / dbData.price_one_month_ago) * 100 : 0
+      
+      const oneYearChange = dbData.price_one_year_ago && currentPrice && currentPrice !== "No Data" ? 
+        ((currentPrice - dbData.price_one_year_ago) / dbData.price_one_year_ago) * 100 : 0
       
       return {
         ...stock,
-        price: dbData.current_price || stock.price,
+        price: currentPrice,
         oneDayChange: oneDayChange,
         oneWeekChange: oneWeekChange,
         oneMonthChange: oneMonthChange,
@@ -328,7 +368,18 @@ export default function Dashboard() {
     }
     
     // Fallback to original stock data if no database data
-    return stock
+    // But still use live price if available
+    if (livePrice) {
+      return {
+        ...stock,
+        price: livePrice.price
+      }
+    }
+    
+    return {
+      ...stock,
+      price: "No Data"
+    }
   }
 
   return (
@@ -340,12 +391,24 @@ export default function Dashboard() {
             Add Stock
           </Button>
         </div>
-        <div className="flex gap-2">
-          <PolygonRefreshButton 
-            onRefresh={handleRefreshData}
-            loading={loading}
-            disabled={stocks.length === 0}
-          />
+        <div className="flex gap-2 items-center">
+          {/* WebSocket Connection Status */}
+          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm ${
+            wsConnected ? 'bg-blue-50 text-blue-700' : 'bg-gray-100 text-gray-500'
+          }`}>
+            {wsConnected ? (
+              <>
+                <Wifi className="w-4 h-4" />
+                <span>Live Updates (15-min delayed)</span>
+              </>
+            ) : (
+              <>
+                <WifiOff className="w-4 h-4" />
+                <span>Connecting...</span>
+              </>
+            )}
+          </div>
+          
           <Button variant="outline" onClick={toggleEditMode}>
             {editMode ? "Cancel" : "Edit / Remove"}
           </Button>
@@ -360,6 +423,12 @@ export default function Dashboard() {
       {error && (
         <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md">
           <p className="text-red-800 text-sm">{error}</p>
+        </div>
+      )}
+
+      {wsError && (
+        <div className="mb-4 p-4 bg-orange-50 border border-orange-200 rounded-md">
+          <p className="text-orange-800 text-sm">WebSocket: {wsError}</p>
         </div>
       )}
 
@@ -415,7 +484,7 @@ export default function Dashboard() {
                   <div className="w-5 h-5 bg-yellow-500 rounded-full"></div>
                   Performance & Intrinsic Value
                 </CardTitle>
-                <p className="text-gray-400 text-sm mt-1">Data 15 mins delayed</p>
+                <p className="text-gray-400 text-sm mt-1">Live updates (15-min delayed)</p>
               </div>
             </CardHeader>
             <CardContent className="overflow-x-auto">
@@ -606,7 +675,10 @@ export default function Dashboard() {
                         {formatMarketCap(getRealStockData(stock).marketCap)}
                       </TableCell>
                       <TableCell className="text-center py-1">
-                        ${getRealStockData(stock).price.toFixed(2)}
+                        {typeof getRealStockData(stock).price === 'string' 
+                          ? getRealStockData(stock).price 
+                          : `$${getRealStockData(stock).price.toFixed(2)}`
+                        }
                       </TableCell>
                       <TableCell 
                         className="text-center font-medium py-1"
@@ -674,7 +746,7 @@ export default function Dashboard() {
                   <div className="w-5 h-5 bg-green-500 rounded-full"></div>
                   Market Valuation
                 </CardTitle>
-                <p className="text-gray-400 text-sm mt-1">Data 15 mins delayed</p>
+                <p className="text-gray-400 text-sm mt-1">Live updates (15-min delayed)</p>
               </div>
             </CardHeader>
             <CardContent className="overflow-x-auto">
@@ -848,7 +920,10 @@ export default function Dashboard() {
                         )}
                       </TableCell>
                       <TableCell className="text-center py-1">
-                        ${getRealStockData(stock).price.toFixed(2)}
+                        {typeof getRealStockData(stock).price === 'string' 
+                          ? getRealStockData(stock).price 
+                          : `$${getRealStockData(stock).price.toFixed(2)}`
+                        }
                       </TableCell>
                       <TableCell className="text-center py-1">
                         {stock.peRatio.toFixed(1)}
@@ -918,7 +993,7 @@ export default function Dashboard() {
                   <div className="w-5 h-5 bg-orange-500 rounded-full"></div>
                   Research & Analysis
                 </CardTitle>
-                <p className="text-gray-500 text-sm mt-1">Data 15 mins delayed</p>
+                <p className="text-gray-500 text-sm mt-1">Live updates (15-min delayed)</p>
               </div>
             </CardHeader>
             <CardContent className="overflow-x-auto">

@@ -1,3 +1,4 @@
+
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
@@ -6,6 +7,7 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 const polygonApiKey = process.env.NEXT_PUBLIC_POLYGON_API_KEY!
 
+// Creates the client
 const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 interface PolygonResult {
@@ -28,53 +30,19 @@ interface SnapshotResponse {
   ticker: TickerData
 }
 
-async function fetchHistoricalPrice(symbol: string, daysAgo: number) {
-  try {
-    const today = new Date()
-    const targetDate = new Date(today.getTime() - (daysAgo * 24 * 60 * 60 * 1000))
-    const dateStr = targetDate.toISOString().split('T')[0]
-    
-    const url = `https://api.polygon.io/v2/aggs/ticker/${symbol}/range/1/day/${dateStr}/${dateStr}?adjusted=true&sort=desc&limit=1&apiKey=${polygonApiKey}`
-    
-    const response = await fetch(url)
-    if (!response.ok) {
-      return null
-    }
-    
-    const data = await response.json() as PolygonResponse
-    if (!data.results || data.results.length === 0) {
-      return null
-    }
-    
-    return data.results[0].c // Close price
-    
-  } catch {
-    return null
-  }
+interface AllPriceData {
+  priceYesterday: number | null
+  priceFiveDaysAgo: number | null
+  priceOneMonthAgo: number | null
+  priceOneYearAgo: number | null
+  fiftyTwoWeekHigh: number | null
+  fiftyTwoWeekLow: number | null
 }
 
-async function fetchMarketCap(symbol: string) {
-  try {
-    const url = `https://api.polygon.io/v3/reference/tickers/${symbol}?apiKey=${polygonApiKey}`
-    
-    const response = await fetch(url)
-    if (!response.ok) {
-      return null
-    }
-
-    const data = await response.json() as { results: { market_cap?: number } }
-    if (!data.results) {
-      return null
-    }
-    
-    return data.results.market_cap || null
-    
-  } catch {
-    return null
-  }
-}
-
-async function fetch52WeekHighLow(symbol: string) {
+// OPTIMIZED: Fetches ALL historical prices in ONE API call
+// Gets a full year of data (~252 trading days) and extracts everything we need from it
+// This replaces 5 separate API calls with just 1!
+async function fetchAllHistoricalPrices(symbol: string): Promise<AllPriceData> {
   try {
     const today = new Date()
     const oneYearAgo = new Date(today.getTime() - (365 * 24 * 60 * 60 * 1000))
@@ -82,168 +50,125 @@ async function fetch52WeekHighLow(symbol: string) {
     const startDate = oneYearAgo.toISOString().split('T')[0]
     const endDate = today.toISOString().split('T')[0]
     
+    console.log(`📅 Fetching year of data for ${symbol}: ${startDate} to ${endDate}`)
+    
+    // ONE API call gets 365 days of data (~252 trading days)
     const url = `https://api.polygon.io/v2/aggs/ticker/${symbol}/range/1/day/${startDate}/${endDate}?adjusted=true&sort=asc&limit=1000&apiKey=${polygonApiKey}`
     
     const response = await fetch(url)
     if (!response.ok) {
-      return { high: null, low: null }
+      console.error(`❌ Failed to fetch historical data: ${response.status}`)
+      return {
+        priceYesterday: null,
+        priceFiveDaysAgo: null,
+        priceOneMonthAgo: null,
+        priceOneYearAgo: null,
+        fiftyTwoWeekHigh: null,
+        fiftyTwoWeekLow: null
+      }
     }
     
     const data = await response.json() as PolygonResponse
     if (!data.results || data.results.length === 0) {
-      return { high: null, low: null }
+      console.error(`❌ No results returned for ${symbol}`)
+      return {
+        priceYesterday: null,
+        priceFiveDaysAgo: null,
+        priceOneMonthAgo: null,
+        priceOneYearAgo: null,
+        fiftyTwoWeekHigh: null,
+        fiftyTwoWeekLow: null
+      }
     }
     
-    const highs = data.results.map((day: PolygonResult) => day.h)
-    const lows = data.results.map((day: PolygonResult) => day.l)
+    const results = data.results
+    const resultCount = results.length
     
-    const maxHigh = Math.max(...highs)
-    const minLow = Math.min(...lows)
+    console.log(`✅ Fetched ${resultCount} trading days for ${symbol}`)
     
-    return { high: maxHigh, low: minLow }
+    // Extract all the prices we need from this single dataset
+    const priceData = {
+      priceYesterday: resultCount >= 2 ? results[resultCount - 2].c : null,
+      priceFiveDaysAgo: resultCount >= 6 ? results[resultCount - 6].c : null,
+      priceOneMonthAgo: findClosestPrice(results, 30),
+      priceOneYearAgo: results[0].c, // First day in the dataset
+      fiftyTwoWeekHigh: Math.max(...results.map(d => d.h)),
+      fiftyTwoWeekLow: Math.min(...results.map(d => d.l))
+    }
     
-  } catch {
-    return { high: null, low: null }
+    console.log(`📊 ${symbol} prices:`, {
+      yesterday: priceData.priceYesterday,
+      fiveDaysAgo: priceData.priceFiveDaysAgo,
+      oneMonthAgo: priceData.priceOneMonthAgo,
+      oneYearAgo: priceData.priceOneYearAgo,
+      high52w: priceData.fiftyTwoWeekHigh,
+      low52w: priceData.fiftyTwoWeekLow
+    })
+    
+    return priceData
+    
+  } catch (error) {
+    console.error(`❌ Error fetching historical prices for ${symbol}:`, error)
+    return {
+      priceYesterday: null,
+      priceFiveDaysAgo: null,
+      priceOneMonthAgo: null,
+      priceOneYearAgo: null,
+      fiftyTwoWeekHigh: null,
+      fiftyTwoWeekLow: null
+    }
   }
 }
 
-async function fetchFiveBusinessDaysAgoClosePrice(symbol: string) {
+// Helper function to find the price closest to X days ago
+function findClosestPrice(results: PolygonResult[], daysAgo: number): number | null {
+  if (results.length === 0) return null
+  
+  const targetTimestamp = Date.now() - (daysAgo * 24 * 60 * 60 * 1000)
+  
+  // Find the day closest to the target date
+  const closest = results.reduce((prev, curr) => {
+    const prevDiff = Math.abs(prev.t - targetTimestamp)
+    const currDiff = Math.abs(curr.t - targetTimestamp)
+    return currDiff < prevDiff ? curr : prev
+  })
+  
+  return closest.c
+}
+
+// Fetches the market cap for a stock
+async function fetchMarketCap(symbol: string) {
   try {
-    const today = new Date()
-    
-    let businessDaysCount = 0
-    const targetDate = new Date(today)
-    
-    while (businessDaysCount < 5) {
-      targetDate.setDate(targetDate.getDate() - 1)
-      
-      const dayOfWeek = targetDate.getDay()
-      if (dayOfWeek >= 1 && dayOfWeek <= 5) {
-        businessDaysCount++
-      }
+    const url = `https://api.polygon.io/v3/reference/tickers/${symbol}?apiKey=${polygonApiKey}`
+
+    const response = await fetch(url)
+    if (!response.ok) {
+      console.error(`❌ Failed to fetch market cap: ${response.status}`)
+      return null
     }
-    
-    const targetDateStr = targetDate.toISOString().split('T')[0]
-    
-    let url = `https://api.polygon.io/v2/aggs/ticker/${symbol}/range/1/day/${targetDateStr}/${targetDateStr}?adjusted=true&sort=desc&limit=1&apiKey=${polygonApiKey}`
-    
-    let response = await fetch(url)
-    if (response.ok) {
-      const data = await response.json() as PolygonResponse
-      if (data.results && data.results.length > 0) {
-        return data.results[0].c
-      }
+
+    const data = await response.json() as { results: { market_cap?: number } }
+    if (!data.results) {
+      return null
     }
+
+    console.log(`💰 ${symbol} market cap: ${data.results.market_cap}`)
+    return data.results.market_cap || null
     
-    // Search backwards to find most recent available data
-    const startDate = new Date(targetDate.getTime() - (5 * 24 * 60 * 60 * 1000))
-    const endDate = targetDate
-    
-    const startStr = startDate.toISOString().split('T')[0]
-    const endStr = endDate.toISOString().split('T')[0]
-    
-    url = `https://api.polygon.io/v2/aggs/ticker/${symbol}/range/1/day/${startStr}/${endStr}?adjusted=true&sort=desc&limit=10&apiKey=${polygonApiKey}`
-    response = await fetch(url)
-    
-    if (response.ok) {
-      const data = await response.json() as PolygonResponse
-      if (data.results && data.results.length > 0) {
-        return data.results[0].c
-      }
-    }
-    
-    return null
-    
-  } catch {
+  } catch (error) {
+    console.error(`❌ Error fetching market cap for ${symbol}:`, error)
     return null
   }
 }
 
-async function fetchOneMonthAgoClosePrice(symbol: string) {
-  try {
-    const today = new Date()
-    const oneMonthAgo = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000))
-    const oneMonthAgoStr = oneMonthAgo.toISOString().split('T')[0]
-    
-    let url = `https://api.polygon.io/v2/aggs/ticker/${symbol}/range/1/day/${oneMonthAgoStr}/${oneMonthAgoStr}?adjusted=true&sort=desc&limit=1&apiKey=${polygonApiKey}`
-    
-    let response = await fetch(url)
-    if (response.ok) {
-      const data = await response.json() as PolygonResponse
-      if (data.results && data.results.length > 0) {
-        return data.results[0].c
-      }
-    }
-    
-    // Search backwards
-    const startDate = new Date(oneMonthAgo.getTime() - (10 * 24 * 60 * 60 * 1000))
-    const endDate = oneMonthAgo
-    
-    const startStr = startDate.toISOString().split('T')[0]
-    const endStr = endDate.toISOString().split('T')[0]
-    
-    url = `https://api.polygon.io/v2/aggs/ticker/${symbol}/range/1/day/${startStr}/${endStr}?adjusted=true&sort=desc&limit=10&apiKey=${polygonApiKey}`
-    response = await fetch(url)
-    
-    if (response.ok) {
-      const data = await response.json() as PolygonResponse
-      if (data.results && data.results.length > 0) {
-        return data.results[0].c
-      }
-    }
-    
-    return null
-    
-  } catch {
-    return null
-  }
-}
-
-async function fetchOneYearAgoClosePrice(symbol: string) {
-  try {
-    const today = new Date()
-    const oneYearAgo = new Date(today.getTime() - (365 * 24 * 60 * 60 * 1000))
-    const oneYearAgoStr = oneYearAgo.toISOString().split('T')[0]
-    
-    let url = `https://api.polygon.io/v2/aggs/ticker/${symbol}/range/1/day/${oneYearAgoStr}/${oneYearAgoStr}?adjusted=true&sort=desc&limit=1&apiKey=${polygonApiKey}`
-    
-    let response = await fetch(url)
-    if (response.ok) {
-      const data = await response.json() as PolygonResponse
-      if (data.results && data.results.length > 0) {
-        return data.results[0].c
-      }
-    }
-    
-    // Search backwards
-    const startDate = new Date(oneYearAgo.getTime() - (30 * 24 * 60 * 60 * 1000))
-    const endDate = oneYearAgo
-    
-    const startStr = startDate.toISOString().split('T')[0]
-    const endStr = endDate.toISOString().split('T')[0]
-    
-    url = `https://api.polygon.io/v2/aggs/ticker/${symbol}/range/1/day/${startStr}/${endStr}?adjusted=true&sort=desc&limit=20&apiKey=${polygonApiKey}`
-    response = await fetch(url)
-    
-    if (response.ok) {
-      const data = await response.json() as PolygonResponse
-      if (data.results && data.results.length > 0) {
-        return data.results[0].c
-      }
-    }
-    
-    return null
-    
-  } catch {
-    return null
-  }
-}
-
+// Main function that populates stock data
 async function populatePriceBased() {
   try {
     const symbol = 'AAPL'
     
-    // Fetch current data
+    console.log(`🚀 Starting data fetch for ${symbol}...`)
+    
+    // Fetch current price from snapshot
     const currentUrl = `https://api.polygon.io/v2/snapshot/locale/us/markets/stocks/tickers/${symbol}?apiKey=${polygonApiKey}`
     
     const response = await fetch(currentUrl)
@@ -256,32 +181,31 @@ async function populatePriceBased() {
     
     // Get current price
     const currentPrice = ticker.min?.c || ticker.prevDay?.c || 0
+    console.log(`💵 ${symbol} current price: $${currentPrice}`)
     
-    // Fetch historical prices
-    const priceYesterday = await fetchHistoricalPrice(symbol, 1)
-    const fiveBusinessDaysAgoClosePrice = await fetchFiveBusinessDaysAgoClosePrice(symbol)
-    const oneMonthAgoClosePrice = await fetchOneMonthAgoClosePrice(symbol)
-    const oneYearAgoClosePrice = await fetchOneYearAgoClosePrice(symbol)
+    // OPTIMIZED: Get ALL historical prices in just 2 API calls instead of 6!
+    const historicalData = await fetchAllHistoricalPrices(symbol)
     const marketCap = await fetchMarketCap(symbol)
-    const { high: maxHigh, low: minLow } = await fetch52WeekHighLow(symbol)
     
-    // Prepare data for database
+    // Prepare data for database (same structure as before - no breaking changes!)
     const stockData = {
       symbol: symbol,
       date: new Date().toISOString().split('T')[0],
       current_price: currentPrice,
-      price_yesterday: priceYesterday,
-      price_one_week_ago: fiveBusinessDaysAgoClosePrice,
-      price_one_month_ago: oneMonthAgoClosePrice,
-      price_one_year_ago: oneYearAgoClosePrice,
+      price_yesterday: historicalData.priceYesterday,
+      price_one_week_ago: historicalData.priceFiveDaysAgo,
+      price_one_month_ago: historicalData.priceOneMonthAgo,
+      price_one_year_ago: historicalData.priceOneYearAgo,
       market_cap: marketCap,
       pe_ratio: 0,
       dividend_yield: 0,
-      fifty_two_week_high: maxHigh,
-      fifty_two_week_low: minLow,
+      fifty_two_week_high: historicalData.fiftyTwoWeekHigh,
+      fifty_two_week_low: historicalData.fiftyTwoWeekLow,
       ten_year_est_return: 0,
       updated_at: new Date().toISOString()
     }
+    
+    console.log(`💾 Saving to database...`)
     
     // Insert into Supabase
     const { error } = await supabase
@@ -295,19 +219,25 @@ async function populatePriceBased() {
       throw new Error(`Database error: ${error.message}`)
     }
     
-    return { success: true, message: 'Stock data updated successfully' }
+    console.log(`✅ Successfully updated ${symbol} data`)
+    return { success: true, message: `Stock data updated successfully for ${symbol}` }
     
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+    console.error(`❌ Failed to populate data:`, errorMessage)
     throw new Error(`Failed to populate data: ${errorMessage}`)
   }
 }
 
+// API endpoint called by Vercel Cron
 export async function GET(request: NextRequest) {
   try {
+    console.log(`⏰ Cron job triggered at ${new Date().toISOString()}`)
+    
     // Verify this is a Vercel cron request
     const authHeader = request.headers.get('authorization')
     if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+      console.error(`❌ Unauthorized cron request`)
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
     
@@ -316,7 +246,7 @@ export async function GET(request: NextRequest) {
     
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
-    console.error('Cron job error:', errorMessage)
+    console.error('❌ Cron job error:', errorMessage)
     return NextResponse.json(
       { error: errorMessage }, 
       { status: 500 }
