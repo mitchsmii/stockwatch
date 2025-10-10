@@ -49,7 +49,9 @@ export function usePolygonWebSocket(): UsePolygonWebSocketReturn {
 
     // Close existing connection if any
     if (wsRef.current) {
+      console.log('🔌 Closing existing WebSocket connection...')
       wsRef.current.close()
+      wsRef.current = null
     }
 
     console.log('🔌 Connecting to Polygon WebSocket (15-min delayed)...')
@@ -152,6 +154,13 @@ export function usePolygonWebSocket(): UsePolygonWebSocketReturn {
       setConnected(false)
       wsRef.current = null
 
+      // Handle connection limit error specifically
+      if (event.reason?.includes('Maximum number of websocket connections exceeded')) {
+        setError('Connection limit reached. Please refresh the page.')
+        console.error('❌ Connection limit reached - not attempting reconnect')
+        return
+      }
+
       // Attempt to reconnect after 5 seconds
       if (event.code !== 1000) { // 1000 = normal closure
         console.log('🔄 Reconnecting in 5 seconds...')
@@ -214,9 +223,12 @@ export function usePolygonWebSocket(): UsePolygonWebSocketReturn {
       console.log('🧹 Cleaning up WebSocket connection')
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current)
+        reconnectTimeoutRef.current = null
       }
       if (wsRef.current) {
+        console.log('🔌 Closing WebSocket connection on cleanup...')
         wsRef.current.close(1000, 'Component unmounted')
+        wsRef.current = null
       }
     }
   }, [connect])
