@@ -1,12 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 
-interface Trade {
-  sym: string    // Symbol (e.g., "AAPL")
-  p: number      // Price
-  s: number      // Size
-  t: number      // Timestamp (Unix ms)
-  x: number      // Exchange ID
-}
 
 interface WebSocketMessage {
   ev: string     // Event type: "A" = trade, "AM" = minute aggregate, "status" = connection status

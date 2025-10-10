@@ -34,7 +34,7 @@ export default function Dashboard() {
   const [stocks, setStocks] = useState(stocksData)
 
   // Fetch stock data from Supabase database
-  const { stockData, loading, error, refreshData } = useStockDatabase()
+  const { stockData, error, refreshData } = useStockDatabase()
   
   // Real-time WebSocket price updates
   const { prices: livePrices, connected: wsConnected, error: wsError, subscribe, unsubscribe } = usePolygonWebSocket()
@@ -63,7 +63,7 @@ export default function Dashboard() {
   }, [stocks, subscribe, unsubscribe])
   
   // Store quotes by time period
-  const [quotesByPeriod, setQuotesByPeriod] = useState<Record<string, Array<{
+  const [quotesByPeriod] = useState<Record<string, Array<{
     symbol: string
     open?: number
     close?: number
@@ -675,10 +675,12 @@ export default function Dashboard() {
                         {formatMarketCap(getRealStockData(stock).marketCap)}
                       </TableCell>
                       <TableCell className="text-center py-1">
-                        {typeof getRealStockData(stock).price === 'string' 
-                          ? getRealStockData(stock).price 
-                          : `$${getRealStockData(stock).price.toFixed(2)}`
-                        }
+                        {(() => {
+                          const stockData = getRealStockData(stock)
+                          return typeof stockData.price === 'string' 
+                            ? stockData.price 
+                            : `$${stockData.price.toFixed(2)}`
+                        })()}
                       </TableCell>
                       <TableCell 
                         className="text-center font-medium py-1"
@@ -711,9 +713,17 @@ export default function Dashboard() {
                       {/* Intrinsic Value Percentage (+/- %) */}
                       <TableCell 
                         className="text-center font-medium py-1"
-                        style={{ backgroundColor: getColorForCustomRange(((stock.intrinsicValue / getRealStockData(stock).price) - 1) * 100, -10, -5, 15) }}
+                        style={{ backgroundColor: (() => {
+                          const stockData = getRealStockData(stock)
+                          const currentPrice = typeof stockData.price === 'number' ? stockData.price : 0
+                          return getColorForCustomRange(((stock.intrinsicValue / currentPrice) - 1) * 100, -10, -5, 15)
+                        })() }}
                       >
-                        {(((stock.intrinsicValue - getRealStockData(stock).price) / getRealStockData(stock).price) * 100).toFixed(2)}%
+                        {(() => {
+                          const stockData = getRealStockData(stock)
+                          const currentPrice = typeof stockData.price === 'number' ? stockData.price : 0
+                          return currentPrice > 0 ? (((stock.intrinsicValue - currentPrice) / currentPrice) * 100).toFixed(2) : '0.00'
+                        })()}%
                       </TableCell>
                       <TableCell 
                         className="text-center font-medium py-1"
@@ -726,9 +736,19 @@ export default function Dashboard() {
                       </TableCell>
                       <TableCell 
                         className="text-center font-medium py-1"
-                        style={{ backgroundColor: getColorForCustomRange(((getRealStockData(stock).price - stock.buyPrice) / stock.buyPrice) * 100, -10, 5, 15) }}
+                        style={{ backgroundColor: (() => {
+                          const stockData = getRealStockData(stock)
+                          const currentPrice = typeof stockData.price === 'number' ? stockData.price : 0
+                          return currentPrice > 0 ? getColorForCustomRange(((currentPrice - stock.buyPrice) / stock.buyPrice) * 100, -10, 5, 15) : '#f3f4f6'
+                        })() }}
                       >
-                        {(((getRealStockData(stock).price - stock.buyPrice) / stock.buyPrice) * 100) >= 0 ? '+' : ''}{(((getRealStockData(stock).price - stock.buyPrice) / stock.buyPrice) * 100).toFixed(2)}%
+                        {(() => {
+                          const stockData = getRealStockData(stock)
+                          const currentPrice = typeof stockData.price === 'number' ? stockData.price : 0
+                          if (currentPrice <= 0) return '0.00'
+                          const percentage = ((currentPrice - stock.buyPrice) / stock.buyPrice) * 100
+                          return `${percentage >= 0 ? '+' : ''}${percentage.toFixed(2)}`
+                        })()}%
                       </TableCell>
                     </TableRow>
                   ))}
@@ -920,10 +940,12 @@ export default function Dashboard() {
                         )}
                       </TableCell>
                       <TableCell className="text-center py-1">
-                        {typeof getRealStockData(stock).price === 'string' 
-                          ? getRealStockData(stock).price 
-                          : `$${getRealStockData(stock).price.toFixed(2)}`
-                        }
+                        {(() => {
+                          const stockData = getRealStockData(stock)
+                          return typeof stockData.price === 'string' 
+                            ? stockData.price 
+                            : `$${stockData.price.toFixed(2)}`
+                        })()}
                       </TableCell>
                       <TableCell className="text-center py-1">
                         {stock.peRatio.toFixed(1)}
@@ -961,21 +983,37 @@ export default function Dashboard() {
                       </TableCell>
                       <TableCell 
                         className="text-center font-medium py-1"
-                        style={{ backgroundColor: getColorForCustomRange(
-                          stock.fiftyTwoWeekLow ? ((getRealStockData(stock).price / stock.fiftyTwoWeekLow) - 1) * 100 : 0, 
-                          10, 20, 30
-                        ) }}
+                        style={{ backgroundColor: (() => {
+                          const stockData = getRealStockData(stock)
+                          const currentPrice = typeof stockData.price === 'number' ? stockData.price : 0
+                          return getColorForCustomRange(
+                            stock.fiftyTwoWeekLow && currentPrice > 0 ? ((currentPrice / stock.fiftyTwoWeekLow) - 1) * 100 : 0, 
+                            10, 20, 30
+                          )
+                        })() }}
                       >
-                        {stock.fiftyTwoWeekLow ? `${(((getRealStockData(stock).price / stock.fiftyTwoWeekLow) - 1) * 100).toFixed(1)}%` : 'N/A'}
+                        {(() => {
+                          const stockData = getRealStockData(stock)
+                          const currentPrice = typeof stockData.price === 'number' ? stockData.price : 0
+                          return stock.fiftyTwoWeekLow && currentPrice > 0 ? `${(((currentPrice / stock.fiftyTwoWeekLow) - 1) * 100).toFixed(1)}%` : 'N/A'
+                        })()}
                       </TableCell>
                       <TableCell 
                         className="text-center font-medium py-1"
-                        style={{ backgroundColor: getColorForCustomRangeInverted(
-                          stock.fiftyTwoWeekHigh ? ((stock.fiftyTwoWeekHigh - getRealStockData(stock).price) / stock.fiftyTwoWeekHigh) * 100 : 0, 
-                          -25, -15, 0
-                        ) }}
+                        style={{ backgroundColor: (() => {
+                          const stockData = getRealStockData(stock)
+                          const currentPrice = typeof stockData.price === 'number' ? stockData.price : 0
+                          return getColorForCustomRangeInverted(
+                            stock.fiftyTwoWeekHigh && currentPrice > 0 ? ((stock.fiftyTwoWeekHigh - currentPrice) / stock.fiftyTwoWeekHigh) * 100 : 0, 
+                            -25, -15, 0
+                          )
+                        })() }}
                       >
-                        {stock.fiftyTwoWeekHigh ? `${(((stock.fiftyTwoWeekHigh - getRealStockData(stock).price) / stock.fiftyTwoWeekHigh) * 100).toFixed(1)}%` : 'N/A'}
+                        {(() => {
+                          const stockData = getRealStockData(stock)
+                          const currentPrice = typeof stockData.price === 'number' ? stockData.price : 0
+                          return stock.fiftyTwoWeekHigh && currentPrice > 0 ? `${(((stock.fiftyTwoWeekHigh - currentPrice) / stock.fiftyTwoWeekHigh) * 100).toFixed(1)}%` : 'N/A'
+                        })()}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -1227,9 +1265,13 @@ export default function Dashboard() {
                         {(() => {
                           const dividend = quotesByPeriod.dividend?.find(q => q?.symbol === stock.ticker)
                           if (dividend?.cashAmount && dividend?.frequency) {
-                            const annualDividend = dividend.cashAmount * Number(dividend.frequency)
-                            const yieldPercent = (annualDividend / getRealStockData(stock).price) * 100
-                            return `${yieldPercent.toFixed(2)}%`
+                            const stockData = getRealStockData(stock)
+                            const currentPrice = typeof stockData.price === 'number' ? stockData.price : 0
+                            if (currentPrice > 0) {
+                              const annualDividend = dividend.cashAmount * Number(dividend.frequency)
+                              const yieldPercent = (annualDividend / currentPrice) * 100
+                              return `${yieldPercent.toFixed(2)}%`
+                            }
                           }
                           return '0.00%'
                         })()}
