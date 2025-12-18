@@ -164,12 +164,6 @@ function findClosestPriceResult(results: PolygonResult[], daysAgo: number): Poly
   return closest
 }
 
-// Helper function to get date string X days ago
-function getDateDaysAgo(days: number): string {
-  const date = new Date()
-  date.setDate(date.getDate() - days)
-  return date.toISOString().split('T')[0]
-}
 
 // Fetches the market cap for a stock
 async function fetchMarketCap(symbol: string) {

@@ -39,13 +39,6 @@ export function useStockDatabase(): UseStockDatabaseReturn {
   const [error, setError] = useState<string | null>(null)
   const fetchingRef = useRef<string>('') // Track what we're currently fetching to prevent duplicates
 
-  // Helper function to get date string X days ago
-  const getDateDaysAgo = (days: number): string => {
-    const date = new Date()
-    date.setDate(date.getDate() - days)
-    return date.toISOString().split('T')[0]
-  }
-
   const fetchStockData = useCallback(async (symbols: string[]) => {
     if (symbols.length === 0) return
 
