@@ -10,12 +10,21 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
 } from "@/components/ui/sidebar"
-import { BarChart3, Settings, Home } from "lucide-react"
+import { BarChart3, Settings, Home, LogOut } from "lucide-react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
+import { createClient } from "@/lib/supabase/client"
 
 export function AppSidebar() {
   const pathname = usePathname()
+  const router = useRouter()
+
+  const handleLogout = async () => {
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    router.push('/login')
+    router.refresh()
+  }
 
   return (
     <Sidebar>
@@ -56,6 +65,15 @@ export function AppSidebar() {
             >
               <Settings className="w-4 h-4" />
               <span className="text-sm text-gray-600">Settings</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton 
+              onClick={handleLogout}
+              className="w-full justify-start gap-3 hover:bg-red-50 hover:text-red-700 transition-colors"
+            >
+              <LogOut className="w-4 h-4" />
+              <span className="text-sm text-gray-600">Sign Out</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

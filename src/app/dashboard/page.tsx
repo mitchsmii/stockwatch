@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Plus, X, Check, Wifi, WifiOff } from "lucide-react"
+import { Plus, X, Check, Wifi, WifiOff, TrendingUp, Activity, BarChart3 } from "lucide-react"
 import { getColorForCustomRange, getColorForCustomRangeInverted } from "@/lib/utils/getColorForChange"
 import stocksData from "@/data/stocks.json"
 import { StockDetailDrawer } from "@/components/ui/stock-detail-drawer"
@@ -39,13 +39,16 @@ export default function Dashboard() {
   // Real-time WebSocket price updates
   const { prices: livePrices, connected: wsConnected, error: wsError, subscribe, unsubscribe } = usePolygonWebSocket()
   
-  // Load initial data from database when component mounts
+  // Load initial data from database when component mounts or stocks change
   useEffect(() => {
     if (stocks.length > 0) {
       const symbols = stocks.map(stock => stock.ticker)
       refreshData(symbols)
     }
-  }, [stocks, refreshData])
+    // Only depend on the stock tickers (as a string key), not the refreshData function
+    // This prevents infinite loops when refreshData changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stocks.map(s => s.ticker).sort().join(',')])
   
   // Subscribe to WebSocket updates for all stocks
   useEffect(() => {
@@ -279,22 +282,39 @@ export default function Dashboard() {
     // Check if we have live WebSocket price for this stock
     const livePrice = livePrices[stock.ticker]
     
-    // If WebSocket isn't connected yet, show loading state
-    if (!wsConnected) {
+    // If we have database data, use it immediately (don't wait for WebSocket)
+    if (dbData) {
+      // Use WebSocket price if available, otherwise use database price
+      // This ensures we show data immediately from database, then update with live WebSocket price
+      const currentPrice = livePrice?.price ?? dbData.current_price ?? 0
+      const currentPriceNum = typeof currentPrice === 'number' ? currentPrice : 0
+      
+      // Calculate percentage changes from stored historical prices
+      const oneDayChange = dbData.price_yesterday && currentPriceNum > 0 ? 
+        ((currentPriceNum - dbData.price_yesterday) / dbData.price_yesterday) * 100 : 0
+      
+      const oneWeekChange = dbData.price_one_week_ago && currentPriceNum > 0 ? 
+        ((currentPriceNum - dbData.price_one_week_ago) / dbData.price_one_week_ago) * 100 : 0
+      
+      const oneMonthChange = dbData.price_one_month_ago && currentPriceNum > 0 ? 
+        ((currentPriceNum - dbData.price_one_month_ago) / dbData.price_one_month_ago) * 100 : 0
+      
+      const oneYearChange = dbData.price_one_year_ago && currentPriceNum > 0 ? 
+        ((currentPriceNum - dbData.price_one_year_ago) / dbData.price_one_year_ago) * 100 : 0
+      
       return {
         ...stock,
-        price: "Loading...",
-        oneDayChange: 0,
-        oneWeekChange: 0,
-        oneMonthChange: 0,
-        oneYearChange: 0,
-        // Keep database data for other fields if available
-        marketCap: dbData?.market_cap || stock.marketCap,
-        peRatio: dbData?.pe_ratio || stock.peRatio,
-        dividendYield: dbData?.dividend_yield || stock.dividendYield,
-        fiftyTwoWeekHigh: dbData?.fifty_two_week_high || stock.fiftyTwoWeekHigh,
-        fiftyTwoWeekLow: dbData?.fifty_two_week_low || stock.fiftyTwoWeekLow,
-        tenYearEstReturn: dbData?.ten_year_est_return || stock.tenYearEstReturn,
+        price: currentPriceNum > 0 ? currentPriceNum : (wsConnected && !livePrice ? "Loading..." : dbData.current_price || 0),
+        oneDayChange: oneDayChange,
+        oneWeekChange: oneWeekChange,
+        oneMonthChange: oneMonthChange,
+        oneYearChange: oneYearChange,
+        marketCap: dbData.market_cap || stock.marketCap,
+        peRatio: dbData.pe_ratio || stock.peRatio,
+        dividendYield: dbData.dividend_yield || stock.dividendYield,
+        fiftyTwoWeekHigh: dbData.fifty_two_week_high || stock.fiftyTwoWeekHigh,
+        fiftyTwoWeekLow: dbData.fifty_two_week_low || stock.fiftyTwoWeekLow,
+        tenYearEstReturn: dbData.ten_year_est_return || stock.tenYearEstReturn,
         // Keep other fields from original stock data
         volume: stock.volume,
         beta: stock.beta,
@@ -308,67 +328,7 @@ export default function Dashboard() {
       }
     }
     
-    // Debug: Log what we have for this stock
-    console.log(`🔍 ${stock.ticker} data:`, {
-      dbData: !!dbData,
-      livePrice: !!livePrice,
-      livePriceValue: livePrice?.price,
-      allLivePrices: Object.keys(livePrices)
-    })
-    
-    if (dbData) {
-      // PRICE COLUMN: ONLY use WebSocket price, no Supabase fallback
-      const currentPrice = livePrice?.price || "No Data"
-      
-      // Debug: Show what price we're actually using
-      console.log(`💰 ${stock.ticker} final price:`, {
-        livePrice: livePrice?.price,
-        finalPrice: currentPrice,
-        source: livePrice?.price ? 'WebSocket' : 'No Data'
-      })
-      
-      // Calculate percentage changes from stored historical prices
-      // Note: We use database historical prices, but current price from WebSocket (most up-to-date)
-      const oneDayChange = dbData.price_yesterday && currentPrice && currentPrice !== "No Data" ? 
-        ((currentPrice - dbData.price_yesterday) / dbData.price_yesterday) * 100 : 0
-      
-      const oneWeekChange = dbData.price_one_week_ago && currentPrice && currentPrice !== "No Data" ? 
-        ((currentPrice - dbData.price_one_week_ago) / dbData.price_one_week_ago) * 100 : 0
-      
-      const oneMonthChange = dbData.price_one_month_ago && currentPrice && currentPrice !== "No Data" ? 
-        ((currentPrice - dbData.price_one_month_ago) / dbData.price_one_month_ago) * 100 : 0
-      
-      const oneYearChange = dbData.price_one_year_ago && currentPrice && currentPrice !== "No Data" ? 
-        ((currentPrice - dbData.price_one_year_ago) / dbData.price_one_year_ago) * 100 : 0
-      
-      return {
-        ...stock,
-        price: currentPrice,
-        oneDayChange: oneDayChange,
-        oneWeekChange: oneWeekChange,
-        oneMonthChange: oneMonthChange,
-        oneYearChange: oneYearChange,
-        marketCap: dbData.market_cap || stock.marketCap,
-        peRatio: dbData.pe_ratio || stock.peRatio,
-        dividendYield: dbData.dividend_yield || stock.dividendYield,
-        fiftyTwoWeekHigh: dbData.fifty_two_week_high || stock.fiftyTwoWeekHigh,
-        fiftyTwoWeekLow: dbData.fifty_two_week_low || stock.fiftyTwoWeekLow,
-        tenYearEstReturn: dbData.ten_year_est_return || stock.tenYearEstReturn,
-        // Keep other fields from original stock data since we don't store them
-        volume: stock.volume,
-        beta: stock.beta,
-        intrinsicValue: stock.intrinsicValue,
-        upsidePercent: stock.upsidePercent,
-        buyPrice: stock.buyPrice,
-        buyUpsidePercent: stock.buyUpsidePercent,
-        overallRating: stock.overallRating,
-        qualityRating: stock.qualityRating,
-        valueRating: stock.valueRating,
-      }
-    }
-    
-    // Fallback to original stock data if no database data
-    // But still use live price if available
+    // If no database data but WebSocket has price, use it
     if (livePrice) {
       return {
         ...stock,
@@ -376,118 +336,217 @@ export default function Dashboard() {
       }
     }
     
+    // Fallback: no data available
     return {
       ...stock,
-      price: "No Data"
+      price: wsConnected ? "Loading..." : "No Data"
     }
   }
 
+  // Calculate summary stats
+  const totalStocks = stocks.length
+  const heldStocks = stocks.filter(s => s.held).length
+  const avgOneDayChange = stocks.reduce((sum, stock) => {
+    const data = getRealStockData(stock)
+    return sum + (data.oneDayChange || 0)
+  }, 0) / totalStocks || 0
+
   return (
-    <div className="w-full p-6 space-y-6 max-w-none">
-      <div className="flex justify-between items-center mb-6">
-        <div className="flex gap-2">
-          <Button onClick={() => setShowAddForm(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Add Stock
-          </Button>
-        </div>
-        <div className="flex gap-2 items-center">
-          {/* WebSocket Connection Status */}
-          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm ${
-            wsConnected ? 'bg-blue-50 text-blue-700' : 'bg-gray-100 text-gray-500'
-          }`}>
-            {wsConnected ? (
-              <>
-                <Wifi className="w-4 h-4" />
-                <span>Live Updates (15-min delayed)</span>
-              </>
-            ) : (
-              <>
-                <WifiOff className="w-4 h-4" />
-                <span>Connecting...</span>
-              </>
-            )}
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
+      {/* Header Section */}
+      <div className="bg-white border-b border-gray-200 sticky top-0 z-40 shadow-sm">
+        <div className="px-6 py-5">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Portfolio Dashboard</h1>
+              <p className="text-sm text-gray-500 mt-1">Real-time stock tracking and analysis</p>
+            </div>
+            <div className="flex items-center gap-3">
+              {/* WebSocket Connection Status */}
+              <div className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                wsConnected ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'bg-gray-100 text-gray-500 border border-gray-200'
+              }`}>
+                {wsConnected ? (
+                  <>
+                    <Wifi className="w-4 h-4" />
+                    <span>Live (15-min delayed)</span>
+                  </>
+                ) : (
+                  <>
+                    <WifiOff className="w-4 h-4" />
+                    <span>Connecting...</span>
+                  </>
+                )}
+              </div>
+              
+              <Button variant="outline" onClick={toggleEditMode} className="gap-2">
+                {editMode ? (
+                  <>
+                    <X className="w-4 h-4" />
+                    Cancel
+                  </>
+                ) : (
+                  <>
+                    <BarChart3 className="w-4 h-4" />
+                    Manage
+                  </>
+                )}
+              </Button>
+              
+              {!editMode && (
+                <Button onClick={() => setShowAddForm(true)} className="gap-2 bg-blue-600 hover:bg-blue-700">
+                  <Plus className="w-4 h-4" />
+                  Add Stock
+                </Button>
+              )}
+              
+              {editMode && selectedStocks.size > 0 && (
+                <Button variant="destructive" onClick={removeSelectedStocks} className="gap-2">
+                  <X className="w-4 h-4" />
+                  Remove ({selectedStocks.size})
+                </Button>
+              )}
+            </div>
           </div>
-          
-          <Button variant="outline" onClick={toggleEditMode}>
-            {editMode ? "Cancel" : "Edit / Remove"}
-          </Button>
-          {editMode && selectedStocks.size > 0 && (
-            <Button variant="destructive" onClick={removeSelectedStocks}>
-              Remove Selected ({selectedStocks.size})
-            </Button>
-          )}
+
+          {/* Stats Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+            <Card className="border-0 shadow-sm bg-gradient-to-br from-blue-50 to-blue-100/50">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-blue-700">Total Stocks</p>
+                    <p className="text-2xl font-bold text-blue-900 mt-1">{totalStocks}</p>
+                  </div>
+                  <div className="w-12 h-12 rounded-lg bg-blue-600/10 flex items-center justify-center">
+                    <TrendingUp className="w-6 h-6 text-blue-600" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-0 shadow-sm bg-gradient-to-br from-green-50 to-green-100/50">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-green-700">Held Positions</p>
+                    <p className="text-2xl font-bold text-green-900 mt-1">{heldStocks}</p>
+                  </div>
+                  <div className="w-12 h-12 rounded-lg bg-green-600/10 flex items-center justify-center">
+                    <Check className="w-6 h-6 text-green-600" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-0 shadow-sm bg-gradient-to-br from-amber-50 to-amber-100/50">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-amber-700">Avg 1D Change</p>
+                    <p className={`text-2xl font-bold mt-1 ${avgOneDayChange >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+                      {avgOneDayChange >= 0 ? '+' : ''}{avgOneDayChange.toFixed(2)}%
+                    </p>
+                  </div>
+                  <div className="w-12 h-12 rounded-lg bg-amber-600/10 flex items-center justify-center">
+                    <Activity className="w-6 h-6 text-amber-600" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
 
-      {error && (
-        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md">
-          <p className="text-red-800 text-sm">{error}</p>
-        </div>
-      )}
+      {/* Main Content */}
+      <div className="px-6 py-6 max-w-[1920px] mx-auto">
+        {/* Error Messages */}
+        {error && (
+          <div className="mb-4 p-4 bg-red-50 border-l-4 border-red-400 rounded-r-lg shadow-sm">
+            <p className="text-red-800 text-sm font-medium">{error}</p>
+          </div>
+        )}
 
-      {wsError && (
-        <div className="mb-4 p-4 bg-orange-50 border border-orange-200 rounded-md">
-          <p className="text-orange-800 text-sm">WebSocket: {wsError}</p>
-        </div>
-      )}
+        {wsError && (
+          <div className="mb-4 p-4 bg-orange-50 border-l-4 border-orange-400 rounded-r-lg shadow-sm">
+            <p className="text-orange-800 text-sm font-medium">WebSocket: {wsError}</p>
+          </div>
+        )}
 
-      {showAddForm && (
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Add New Stock</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="flex gap-4">
-              <div className="flex-1">
-                <Label htmlFor="ticker">Ticker Symbol</Label>
-                <Input
-                  id="ticker"
-                  value={newTicker}
-                  onChange={(e) => setNewTicker(e.target.value)}
-                  placeholder="Enter ticker symbol"
-                  className="mt-1"
-                />
-              </div>
-              <div className="flex items-end gap-2">
-                <Button type="submit">Add</Button>
-                <Button type="button" variant="outline" onClick={() => setShowAddForm(false)}>
-                  <X className="w-4 h-4" />
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-      )}
-
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6 w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="pricing" className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-            Performance & Intrinsic Value
-          </TabsTrigger>
-          <TabsTrigger value="universe" className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-            Market Valuation
-          </TabsTrigger>
-          <TabsTrigger value="alerts" className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
-            Research & Analysis
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="pricing" className="space-y-6 w-full">
-          <Card className="border-t-4 border-t-yellow-500">
-            <CardHeader>
-              <div>
-                <CardTitle className="flex items-center gap-3 text-yellow-800 text-xl">
-                  <div className="w-5 h-5 bg-yellow-500 rounded-full"></div>
-                  Performance & Intrinsic Value
-                </CardTitle>
-                <p className="text-gray-400 text-sm mt-1">Live updates (15-min delayed)</p>
-              </div>
+        {/* Add Stock Form */}
+        {showAddForm && (
+          <Card className="mb-6 border-0 shadow-md">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg">Add New Stock</CardTitle>
             </CardHeader>
-            <CardContent className="overflow-x-auto">
+            <CardContent>
+              <form onSubmit={handleSubmit} className="flex gap-3">
+                <div className="flex-1">
+                  <Label htmlFor="ticker" className="text-sm font-medium">Ticker Symbol</Label>
+                  <Input
+                    id="ticker"
+                    value={newTicker}
+                    onChange={(e) => setNewTicker(e.target.value)}
+                    placeholder="e.g., AAPL, MSFT, GOOGL"
+                    className="mt-1.5"
+                  />
+                </div>
+                <div className="flex items-end gap-2">
+                  <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
+                    Add Stock
+                  </Button>
+                  <Button type="button" variant="outline" onClick={() => setShowAddForm(false)}>
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Tabs Section */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <div className="mb-6">
+            <TabsList className="inline-flex h-12 items-center justify-start rounded-lg bg-gray-100 p-1.5 w-full">
+              <TabsTrigger 
+                value="pricing" 
+                className="flex-1 flex items-center justify-center gap-2 data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all"
+              >
+                <div className="w-2.5 h-2.5 bg-yellow-500 rounded-full"></div>
+                <span className="font-medium">Performance & Intrinsic Value</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="universe" 
+                className="flex-1 flex items-center justify-center gap-2 data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all"
+              >
+                <div className="w-2.5 h-2.5 bg-green-500 rounded-full"></div>
+                <span className="font-medium">Market Valuation</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="alerts" 
+                className="flex-1 flex items-center justify-center gap-2 data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all"
+              >
+                <div className="w-2.5 h-2.5 bg-orange-500 rounded-full"></div>
+                <span className="font-medium">Research & Analysis</span>
+              </TabsTrigger>
+            </TabsList>
+          </div>
+
+          <TabsContent value="pricing" className="w-full mt-6">
+            <Card className="border-0 shadow-lg">
+              <CardHeader className="border-b border-gray-200 bg-gradient-to-r from-yellow-50 to-transparent pb-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                    <div>
+                      <CardTitle className="text-xl font-bold text-gray-900">Performance & Intrinsic Value</CardTitle>
+                      <p className="text-sm text-gray-500 mt-0.5">Live updates (15-min delayed)</p>
+                    </div>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow className="border-b-2 border-gray-200">
@@ -754,22 +813,26 @@ export default function Dashboard() {
                   ))}
                 </TableBody>
               </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-        <TabsContent value="universe" className="space-y-6 w-full">
-          <Card className="border-t-4 border-t-green-500">
-            <CardHeader>
-              <div>
-                <CardTitle className="flex items-center gap-3 text-green-800 text-xl">
-                  <div className="w-5 h-5 bg-green-500 rounded-full"></div>
-                  Market Valuation
-                </CardTitle>
-                <p className="text-gray-400 text-sm mt-1">Live updates (15-min delayed)</p>
-              </div>
-            </CardHeader>
-            <CardContent className="overflow-x-auto">
+          <TabsContent value="universe" className="w-full mt-6">
+            <Card className="border-0 shadow-lg">
+              <CardHeader className="border-b border-gray-200 bg-gradient-to-r from-green-50 to-transparent pb-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                    <div>
+                      <CardTitle className="text-xl font-bold text-gray-900">Market Valuation</CardTitle>
+                      <p className="text-sm text-gray-500 mt-0.5">Live updates (15-min delayed)</p>
+                    </div>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow className="border-b-2 border-gray-200">
@@ -1019,22 +1082,26 @@ export default function Dashboard() {
                   ))}
                 </TableBody>
               </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-        <TabsContent value="alerts" className="space-y-6 w-full">
-          <Card className="border-t-4 border-t-orange-500">
-            <CardHeader>
-              <div>
-                <CardTitle className="flex items-center gap-3 text-orange-800 text-xl">
-                  <div className="w-5 h-5 bg-orange-500 rounded-full"></div>
-                  Research & Analysis
-                </CardTitle>
-                <p className="text-gray-500 text-sm mt-1">Live updates (15-min delayed)</p>
-              </div>
-            </CardHeader>
-            <CardContent className="overflow-x-auto">
+          <TabsContent value="alerts" className="w-full mt-6">
+            <Card className="border-0 shadow-lg">
+              <CardHeader className="border-b border-gray-200 bg-gradient-to-r from-orange-50 to-transparent pb-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
+                    <div>
+                      <CardTitle className="text-xl font-bold text-gray-900">Research & Analysis</CardTitle>
+                      <p className="text-sm text-gray-500 mt-0.5">Live updates (15-min delayed)</p>
+                    </div>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow className="border-b-2 border-gray-200">
@@ -1280,10 +1347,12 @@ export default function Dashboard() {
                   ))}
                 </TableBody>
               </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
 
       <StockDetailDrawer
         stock={selectedStock}

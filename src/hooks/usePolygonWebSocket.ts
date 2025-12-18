@@ -38,6 +38,8 @@ export function usePolygonWebSocket(): UsePolygonWebSocketReturn {
   const wsRef = useRef<WebSocket | null>(null)
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const subscribedSymbolsRef = useRef<Set<string>>(new Set())
+  const connectionLimitReachedRef = useRef<boolean>(false)
+  const isConnectingRef = useRef<boolean>(false)
 
   const apiKey = process.env.NEXT_PUBLIC_POLYGON_API_KEY
 
@@ -47,13 +49,41 @@ export function usePolygonWebSocket(): UsePolygonWebSocketReturn {
       return
     }
 
-    // Close existing connection if any
+    // Don't connect if we're already connecting or have hit connection limit
+    if (isConnectingRef.current) {
+      console.log('⚠️ Connection already in progress, skipping...')
+      return
+    }
+
+    if (connectionLimitReachedRef.current) {
+      console.log('⚠️ Connection limit reached, not attempting to connect')
+      setError('Connection limit reached. Please refresh the page.')
+      return
+    }
+
+    // Check if we already have an open connection
     if (wsRef.current) {
-      console.log('🔌 Closing existing WebSocket connection...')
-      wsRef.current.close()
+      if (wsRef.current.readyState === WebSocket.OPEN) {
+        console.log('✅ WebSocket already connected, skipping...')
+        return
+      }
+      if (wsRef.current.readyState === WebSocket.CONNECTING) {
+        console.log('⚠️ WebSocket connection in progress, skipping...')
+        return
+      }
+      // Only close if it's in a closable state
+      if (wsRef.current.readyState !== WebSocket.CLOSED) {
+        console.log('🔌 Closing existing WebSocket connection...')
+        try {
+          wsRef.current.close()
+        } catch (e) {
+          console.warn('Error closing existing connection:', e)
+        }
+      }
       wsRef.current = null
     }
 
+    isConnectingRef.current = true
     console.log('🔌 Connecting to Polygon WebSocket (15-min delayed)...')
 
     // Connect to Polygon WebSocket - DELAYED FEED (15 minutes)
@@ -66,6 +96,7 @@ export function usePolygonWebSocket(): UsePolygonWebSocketReturn {
       console.log('✅ WebSocket connected')
       setConnected(true)
       setError(null)
+      isConnectingRef.current = false
 
       // Authenticate
       ws.send(JSON.stringify({
@@ -97,6 +128,19 @@ export function usePolygonWebSocket(): UsePolygonWebSocketReturn {
             console.log('📡 Status:', msg.message)
             if (msg.message?.includes('authenticated')) {
               console.log('🔐 Authenticated successfully')
+            }
+            // Check for connection limit error in status message
+            if (msg.message?.includes('Maximum number of websocket connections exceeded') || 
+                msg.message?.includes('connection limit')) {
+              console.error('❌ Connection limit error detected in status message')
+              connectionLimitReachedRef.current = true
+              setError('Connection limit reached. Please refresh the page.')
+              setConnected(false)
+              // Close the connection properly
+              if (wsRef.current) {
+                wsRef.current.close(1000, 'Connection limit exceeded')
+              }
+              return
             }
             return // Skip processing status messages
           }
@@ -147,25 +191,39 @@ export function usePolygonWebSocket(): UsePolygonWebSocketReturn {
     ws.onerror = (event) => {
       console.error('❌ WebSocket error:', event)
       setError('WebSocket connection error')
+      isConnectingRef.current = false
     }
 
     ws.onclose = (event) => {
       console.log('🔌 WebSocket disconnected:', event.code, event.reason)
       setConnected(false)
       wsRef.current = null
+      isConnectingRef.current = false
 
       // Handle connection limit error specifically
-      if (event.reason?.includes('Maximum number of websocket connections exceeded')) {
+      if (event.reason?.includes('Maximum number of websocket connections exceeded') ||
+          event.reason?.includes('connection limit') ||
+          event.code === 1008) { // 1008 = policy violation (often used for connection limits)
+        connectionLimitReachedRef.current = true
         setError('Connection limit reached. Please refresh the page.')
         console.error('❌ Connection limit reached - not attempting reconnect')
         return
       }
 
-      // Attempt to reconnect after 5 seconds
+      // Don't reconnect if we've hit the connection limit
+      if (connectionLimitReachedRef.current) {
+        console.log('⚠️ Connection limit reached, skipping reconnection')
+        return
+      }
+
+      // Attempt to reconnect after 5 seconds (but only if it's not a normal closure)
       if (event.code !== 1000) { // 1000 = normal closure
         console.log('🔄 Reconnecting in 5 seconds...')
         reconnectTimeoutRef.current = setTimeout(() => {
-          connect()
+          // Double-check we haven't hit limit before reconnecting
+          if (!connectionLimitReachedRef.current) {
+            connect()
+          }
         }, 5000)
       }
     }
@@ -216,17 +274,26 @@ export function usePolygonWebSocket(): UsePolygonWebSocketReturn {
 
   // Connect on mount
   useEffect(() => {
-    connect()
+    // Reset connection limit flag on mount (in case component remounts after hitting limit)
+    // But only if we're not already at the limit (to prevent reconnection loops)
+    if (!connectionLimitReachedRef.current) {
+      connect()
+    } else {
+      console.log('⚠️ Connection limit previously reached, skipping connection attempt')
+    }
 
     // Cleanup on unmount
     return () => {
       console.log('🧹 Cleaning up WebSocket connection')
+      isConnectingRef.current = false
+      
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current)
         reconnectTimeoutRef.current = null
       }
-      if (wsRef.current) {
+      if (wsRef.current && wsRef.current.readyState !== WebSocket.CLOSED) {
         console.log('🔌 Closing WebSocket connection on cleanup...')
+        // Don't set connectionLimitReached on manual cleanup
         wsRef.current.close(1000, 'Component unmounted')
         wsRef.current = null
       }

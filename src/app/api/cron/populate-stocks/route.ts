@@ -37,6 +37,11 @@ interface AllPriceData {
   priceOneYearAgo: number | null
   fiftyTwoWeekHigh: number | null
   fiftyTwoWeekLow: number | null
+  // Actual trading dates from Polygon
+  dateYesterday: string | null
+  dateFiveDaysAgo: string | null
+  dateOneMonthAgo: string | null
+  dateOneYearAgo: string | null
 }
 
 // OPTIMIZED: Fetches ALL historical prices in ONE API call
@@ -64,7 +69,11 @@ async function fetchAllHistoricalPrices(symbol: string): Promise<AllPriceData> {
         priceOneMonthAgo: null,
         priceOneYearAgo: null,
         fiftyTwoWeekHigh: null,
-        fiftyTwoWeekLow: null
+        fiftyTwoWeekLow: null,
+        dateYesterday: null,
+        dateFiveDaysAgo: null,
+        dateOneMonthAgo: null,
+        dateOneYearAgo: null
       }
     }
     
@@ -77,7 +86,11 @@ async function fetchAllHistoricalPrices(symbol: string): Promise<AllPriceData> {
         priceOneMonthAgo: null,
         priceOneYearAgo: null,
         fiftyTwoWeekHigh: null,
-        fiftyTwoWeekLow: null
+        fiftyTwoWeekLow: null,
+        dateYesterday: null,
+        dateFiveDaysAgo: null,
+        dateOneMonthAgo: null,
+        dateOneYearAgo: null
       }
     }
     
@@ -87,13 +100,24 @@ async function fetchAllHistoricalPrices(symbol: string): Promise<AllPriceData> {
     console.log(`✅ Fetched ${resultCount} trading days for ${symbol}`)
     
     // Extract all the prices we need from this single dataset
+    // Also extract the actual trading dates from the results
+    const yesterdayResult = resultCount >= 2 ? results[resultCount - 2] : null
+    const fiveDaysAgoResult = resultCount >= 6 ? results[resultCount - 6] : null
+    const oneMonthAgoResult = findClosestPriceResult(results, 30)
+    const oneYearAgoResult = results[0]
+    
     const priceData = {
-      priceYesterday: resultCount >= 2 ? results[resultCount - 2].c : null,
-      priceFiveDaysAgo: resultCount >= 6 ? results[resultCount - 6].c : null,
-      priceOneMonthAgo: findClosestPrice(results, 30),
-      priceOneYearAgo: results[0].c, // First day in the dataset
+      priceYesterday: yesterdayResult?.c ?? null,
+      priceFiveDaysAgo: fiveDaysAgoResult?.c ?? null,
+      priceOneMonthAgo: oneMonthAgoResult?.c ?? null,
+      priceOneYearAgo: oneYearAgoResult?.c ?? null,
       fiftyTwoWeekHigh: Math.max(...results.map(d => d.h)),
-      fiftyTwoWeekLow: Math.min(...results.map(d => d.l))
+      fiftyTwoWeekLow: Math.min(...results.map(d => d.l)),
+      // Convert timestamps to date strings (YYYY-MM-DD)
+      dateYesterday: yesterdayResult ? new Date(yesterdayResult.t).toISOString().split('T')[0] : null,
+      dateFiveDaysAgo: fiveDaysAgoResult ? new Date(fiveDaysAgoResult.t).toISOString().split('T')[0] : null,
+      dateOneMonthAgo: oneMonthAgoResult ? new Date(oneMonthAgoResult.t).toISOString().split('T')[0] : null,
+      dateOneYearAgo: oneYearAgoResult ? new Date(oneYearAgoResult.t).toISOString().split('T')[0] : null
     }
     
     console.log(`📊 ${symbol} prices:`, {
@@ -115,13 +139,17 @@ async function fetchAllHistoricalPrices(symbol: string): Promise<AllPriceData> {
       priceOneMonthAgo: null,
       priceOneYearAgo: null,
       fiftyTwoWeekHigh: null,
-      fiftyTwoWeekLow: null
+      fiftyTwoWeekLow: null,
+      dateYesterday: null,
+      dateFiveDaysAgo: null,
+      dateOneMonthAgo: null,
+      dateOneYearAgo: null
     }
   }
 }
 
-// Helper function to find the price closest to X days ago
-function findClosestPrice(results: PolygonResult[], daysAgo: number): number | null {
+// Helper function to find the price result closest to X days ago
+function findClosestPriceResult(results: PolygonResult[], daysAgo: number): PolygonResult | null {
   if (results.length === 0) return null
   
   const targetTimestamp = Date.now() - (daysAgo * 24 * 60 * 60 * 1000)
@@ -133,7 +161,14 @@ function findClosestPrice(results: PolygonResult[], daysAgo: number): number | n
     return currDiff < prevDiff ? curr : prev
   })
   
-  return closest.c
+  return closest
+}
+
+// Helper function to get date string X days ago
+function getDateDaysAgo(days: number): string {
+  const date = new Date()
+  date.setDate(date.getDate() - days)
+  return date.toISOString().split('T')[0]
 }
 
 // Fetches the market cap for a stock
@@ -187,36 +222,99 @@ async function populatePriceBased() {
     const historicalData = await fetchAllHistoricalPrices(symbol)
     const marketCap = await fetchMarketCap(symbol)
     
-    // Prepare data for database (same structure as before - no breaking changes!)
-    const stockData = {
-      symbol: symbol,
-      date: new Date().toISOString().split('T')[0],
-      current_price: currentPrice,
-      price_yesterday: historicalData.priceYesterday,
-      price_one_week_ago: historicalData.priceFiveDaysAgo,
-      price_one_month_ago: historicalData.priceOneMonthAgo,
-      price_one_year_ago: historicalData.priceOneYearAgo,
-      market_cap: marketCap,
-      pe_ratio: 0,
-      dividend_yield: 0,
-      fifty_two_week_high: historicalData.fiftyTwoWeekHigh,
-      fifty_two_week_low: historicalData.fiftyTwoWeekLow,
-      ten_year_est_return: 0,
-      updated_at: new Date().toISOString()
-    }
+    const today = new Date().toISOString().split('T')[0]
+    console.log(`💾 Saving to normalized database structure...`)
     
-    console.log(`💾 Saving to database...`)
-    
-    // Insert into Supabase
-    const { error } = await supabase
-      .from('stocks_complete_data')
-      .upsert(stockData, { 
-        onConflict: 'symbol,date',
-        ignoreDuplicates: false 
+    // Step 1: Upsert company data into stocks table
+    const { error: stocksError } = await supabase
+      .from('stocks')
+      .upsert({
+        symbol: symbol,
+        market_cap: marketCap,
+        pe_ratio: 0,
+        dividend_yield: 0,
+        fifty_two_week_high: historicalData.fiftyTwoWeekHigh,
+        fifty_two_week_low: historicalData.fiftyTwoWeekLow,
+        ten_year_est_return: 0,
+        updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'symbol'
       })
     
-    if (error) {
-      throw new Error(`Database error: ${error.message}`)
+    if (stocksError) {
+      throw new Error(`Error updating stocks table: ${stocksError.message}`)
+    }
+    console.log(`✅ Updated stocks table for ${symbol}`)
+    
+    // Step 2: Insert current price into stock_prices
+    const { error: priceError } = await supabase
+      .from('stock_prices')
+      .upsert({
+        symbol: symbol,
+        date: today,
+        price: currentPrice
+      }, {
+        onConflict: 'symbol,date'
+      })
+    
+    if (priceError) {
+      throw new Error(`Error updating stock_prices: ${priceError.message}`)
+    }
+    console.log(`✅ Updated stock_prices for ${symbol} (${today}): $${currentPrice}`)
+    
+    // Step 3: Insert historical prices if they don't exist
+    // Use actual trading dates from Polygon API (not calendar dates)
+    const historicalPrices = [
+      { date: historicalData.dateYesterday, price: historicalData.priceYesterday },
+      { date: historicalData.dateFiveDaysAgo, price: historicalData.priceFiveDaysAgo },
+      { date: historicalData.dateOneMonthAgo, price: historicalData.priceOneMonthAgo },
+      { date: historicalData.dateOneYearAgo, price: historicalData.priceOneYearAgo }
+    ].filter(hp => hp.price !== null && hp.date !== null)
+    
+    if (historicalPrices.length > 0) {
+      const { error: historicalError } = await supabase
+        .from('stock_prices')
+        .upsert(
+          historicalPrices.map(hp => ({
+            symbol: symbol,
+            date: hp.date,
+            price: hp.price
+          })),
+          {
+            onConflict: 'symbol,date',
+            ignoreDuplicates: false
+          }
+        )
+      
+      if (historicalError) {
+        console.warn(`⚠️ Warning inserting historical prices: ${historicalError.message}`)
+        // Don't throw - historical prices are optional
+      } else {
+        console.log(`✅ Inserted ${historicalPrices.length} historical price references`)
+      }
+    }
+    
+    // Step 4: Insert snapshot for historical reference (optional)
+    const { error: snapshotError } = await supabase
+      .from('stock_snapshots')
+      .upsert({
+        symbol: symbol,
+        snapshot_date: today,
+        current_price: currentPrice,
+        price_yesterday: historicalData.priceYesterday,
+        price_one_week_ago: historicalData.priceFiveDaysAgo,
+        price_one_month_ago: historicalData.priceOneMonthAgo,
+        price_one_year_ago: historicalData.priceOneYearAgo,
+        updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'symbol,snapshot_date'
+      })
+    
+    if (snapshotError) {
+      console.warn(`⚠️ Warning inserting snapshot: ${snapshotError.message}`)
+      // Don't throw - snapshots are optional
+    } else {
+      console.log(`✅ Created snapshot for ${symbol}`)
     }
     
     console.log(`✅ Successfully updated ${symbol} data`)

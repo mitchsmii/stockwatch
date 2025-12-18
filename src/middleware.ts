@@ -1,51 +1,75 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { createServerClient } from '@supabase/ssr'
 
-// Creates a function that checks for basic authentication
-// This is used to protect the dashboard from unauthorized access
-// The NextRequest is used to get the request from the client
-// The NextResponse is used to send the response to the client
-export function middleware(request: NextRequest) {
-  
-  // Get the authorization header
-  const authHeader = request.headers.get('authorization')
-  
-  // If no auth header, return 401 to prompt for credentials
-  if (!authHeader) {
-    return new NextResponse('Authentication required', {
-      status: 401,
-      headers: {
-        'WWW-Authenticate': 'Basic realm="IntrinArc"',
-      },
-    })
-  }
-  
-  // Parse the credentials
-  try {
-    const authValue = authHeader.split(' ')[1]
-    const [username, password] = Buffer.from(authValue, 'base64').toString().split(':')
-    
-    // Check if credentials match
-    if (username === process.env.BASIC_AUTH_USER && 
-        password === process.env.BASIC_AUTH_PASSWORD) {
-      return NextResponse.next()
-    }
-  } catch {
-    // If there's any error parsing, treat as invalid
-  }
-  
-  // Invalid credentials, return 401
-  return new NextResponse('Authentication required', {
-    status: 401,
-    headers: {
-      'WWW-Authenticate': 'Basic realm="IntrinArc"',
+export async function middleware(request: NextRequest) {
+  let response = NextResponse.next({
+    request: {
+      headers: request.headers,
     },
   })
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll()
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
+          response = NextResponse.next({
+            request: {
+              headers: request.headers,
+            },
+          })
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options)
+          )
+        },
+      },
+    }
+  )
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  const { pathname } = request.nextUrl
+
+  // Protect dashboard routes
+  if (pathname.startsWith('/dashboard')) {
+    if (!user) {
+      const redirectUrl = new URL('/login', request.url)
+      redirectUrl.searchParams.set('redirect', pathname)
+      return NextResponse.redirect(redirectUrl)
+    }
+  }
+
+  // Protect API routes (except auth routes and cron)
+  if (pathname.startsWith('/api') && 
+      !pathname.startsWith('/api/auth') && 
+      !pathname.startsWith('/api/cron')) {
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+  }
+
+  // Redirect authenticated users away from login page
+  if (pathname === '/login' && user) {
+    return NextResponse.redirect(new URL('/dashboard', request.url))
+  }
+
+  return response
 }
 
 export const config = {
   matcher: [
-    // Protect all routes except static assets and API routes
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+    // Match all routes except static assets
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)).*)',
   ],
 } 
